@@ -1,0 +1,3168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>3D Virtual World</title>
+    <style>
+        body {
+    margin: 0; padding: 0;
+    background: #000;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    overscroll-behavior: none;
+}
+
+#gameContainer {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+}
+#gameContainer canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+#ui {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#loginPanel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 30px;
+    border-radius: 10px;
+    pointer-events: all;
+    color: white;
+    text-align: center;
+    z-index: 1000;
+    border: 2px solid #4CAF50;
+}
+
+#loadingOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+#loadingText {
+    color: #ffffff;
+    font-size: 28px;
+    font-family: Arial, sans-serif;
+    letter-spacing: 2px;
+    animation: loadingPulse 1.2s ease-in-out infinite;
+}
+@keyframes loadingPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.35; }
+}
+
+#loginPanel input, #loginPanel select {
+    padding: 10px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    width: 200px;
+}
+
+#loginPanel button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+#chatPanel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    height: 200px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    padding: 10px;
+    pointer-events: all;
+    display: none;
+    flex-direction: column;
+    z-index: 100;
+    border: 1px solid #333;
+    box-sizing: border-box;
+}
+
+#chatHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+#chatHeader h3 {
+    margin: 0;
+    color: white;
+    font-size: 13px;
+}
+
+#chatMessages {
+    overflow-y: auto;
+    color: white;
+    font-size: 12px;
+    border: 1px solid #333;
+    padding: 5px;
+    border-radius: 5px;
+    margin-bottom: 6px;
+    flex: 1;
+    display: block;
+}
+
+#chatMessages p {
+    margin: 0;
+    line-height: 1.4;
+}
+
+#chatInputContainer {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+#chatInput {
+    flex-grow: 1;
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+}
+
+#sendButton {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+#chatToggle {
+    background: rgba(80, 80, 80, 0.8);
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+/* Resize button — hidden, kept in HTML for compatibility */
+#chatResizeBtn { display: none !important; }
+
+/* Chat collapsed: header only, no messages or input */
+#chatPanel.chat-collapsed {
+    height: auto;
+}
+#chatPanel.chat-collapsed #chatMessages {
+    display: none;
+}
+#chatPanel.chat-collapsed #chatInputContainer {
+    display: none;
+}
+
+/* Chat minimal: header + input only, no messages */
+#chatPanel.chat-minimal #chatMessages {
+    display: none;
+}
+#chatPanel.chat-minimal #chatInputContainer {
+    display: flex;
+}
+
+/* Chat expanded: full view */
+#chatPanel.chat-expanded #chatMessages {
+    display: block;
+}
+#chatPanel.chat-expanded #chatInputContainer {
+    display: flex;
+}
+
+#controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    color: white;
+    font-size: 12px;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+#controls p {
+    margin: 0;
+    line-height: 1.4;
+}
+
+#playerList {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+}
+
+#playerList h3 {
+    margin: 0;
+}
+
+#playerList #playerNames {
+    margin-top: 5px;
+}
+
+#dpad {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    pointer-events: all;
+    z-index: 100;
+    grid-template-areas: 
+        ". up ."
+        "left . right"
+        ". down .";
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px 60px;
+    gap: 5px;
+    opacity: 0.7;
+}
+
+#teleportButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #4CAF50;
+    color: white;
+    font-size: 14px;
+    text-align: center;
+    line-height: 56px;
+    cursor: pointer;
+    z-index: 100;
+    pointer-events: all;
+    display: none;
+}
+
+#teleportPanel {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    padding: 10px;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    pointer-events: all;
+    min-width: 150px;
+}
+
+.teleport-location-button {
+    padding: 8px 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: center;
+}
+
+.teleport-location-button:hover {
+    background-color: #45a049;
+}
+
+.dpad-button {
+    background-color: rgba(50, 50, 50, 0.8);
+    color: white;
+    border: 2px solid rgba(100, 100, 100, 0.8);
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+#dpad-up { grid-area: up; }
+#dpad-left { grid-area: left; }
+#dpad-right { grid-area: right; }
+#dpad-down { grid-area: down; }
+
+.dpad-button:active {
+    background-color: rgba(100, 100, 100, 0.9);
+    border-color: rgba(150, 150, 150, 0.9);
+}
+
+#billboardUploadPanel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    pointer-events: all;
+    color: white;
+    text-align: center;
+    z-index: 1000;
+    display: none;
+    border: 2px solid #4CAF50;
+}
+
+#billboardUploadPanel h3 {
+    margin-top: 0;
+}
+
+#billboardUploadPanel input[type="file"] {
+    margin: 10px 0;
+}
+
+#billboardUploadPanel button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+#loadingMessage {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    text-align: center;
+    z-index: 1001;
+    display: none;
+    border: 2px solid #4CAF50;
+}
+
+#loadingMessage .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ── Platform object panels ── */
+.platformPanel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.92);
+    padding: 20px 24px;
+    border-radius: 10px;
+    pointer-events: all;
+    color: white;
+    text-align: center;
+    z-index: 1000;
+    display: none;
+    border: 2px solid #4CAF50;
+    min-width: 240px;
+}
+.platformPanel h3 { margin-top: 0; }
+.platformPanel button {
+    padding: 8px 16px;
+    margin: 4px;
+    border: none;
+    border-radius: 5px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+.platformPanel button.danger { background: #c0392b; }
+.platformPanel input[type="file"] { margin: 10px 0; display: block; width: 100%; }
+.platformPanel input[type="range"] { width: 160px; vertical-align: middle; }
+.platformPanel .scale-row { margin: 8px 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.platformPanel .rot-row  { margin: 8px 0; }
+
+#resetButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    z-index: 101;
+    pointer-events: all;
+    cursor: pointer;
+    background: rgba(128, 128, 128, 0.8);
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#resetButton img {
+    width: 30px;
+    height: 30px;
+}
+
+#resetPanel {
+    position: fixed;
+    bottom: 65px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 10px;
+    border-radius: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: all;
+    color: white;
+    text-align: center;
+    z-index: 102;
+    border: 2px solid #ff4d4d;
+}
+
+#resetPanel h3 {
+    margin: 0;
+    font-size: 14px;
+    color: #ff4d4d;
+}
+
+.reset-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: center;
+    color: white;
+}
+
+#resetYesButton {
+    background-color: #ff4d4d;
+}
+
+#resetNoButton {
+    background-color: #4CAF50;
+}
+
+
+/* Desktop View */
+@media (min-width: 769px) {
+    #teleportButton {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+    }
+
+    #teleportPanel {
+        bottom: 90px;
+        right: 20px;
+    }
+}
+
+/* Mobile Portrait View */
+@media (max-width: 768px) and (orientation: portrait) {
+    #chatPanel {
+        width: 38vw;
+        height: 180px;
+        left: 5px;
+        bottom: 10px;
+        padding: 6px;
+        box-sizing: border-box;
+        flex-direction: column;
+    }
+    #chatPanel.chat-collapsed {
+        height: auto;
+    }
+    #chatMessages {
+        font-size: 10px;
+        padding: 3px;
+        flex: 1;
+        overflow-y: auto;
+    }
+    #chatInputContainer {
+        flex-shrink: 0;
+        display: flex;
+    }
+    #chatInput { font-size: 10px; padding: 3px; }
+    #sendButton { font-size: 10px; padding: 3px 5px; }
+    #chatToggle { width: 30px; height: 30px; font-size: 16px; }
+    #playerList {
+        display: block;
+        top: 5px;
+        left: 5px;
+        padding: 1px;
+        font-size: 10px;
+        background: rgba(0, 0, 0, 0.7);
+    }
+    #playerList h3 {
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+    }
+    #controls {
+        top: 5px;
+        right: 5px;
+        padding: 3px;
+        font-size: 10px;
+    }
+    #controls p {
+        line-height: 1.2;
+        margin: 0;
+    }
+    #dpad {
+        right: 5px;
+        bottom: 5px;
+        transform: scale(0.8);
+        transform-origin: bottom right;
+    }
+    #teleportButton {
+        display: none;
+        width: 40px;
+        height: 40px;
+        line-height: 36px;
+        font-size: 10px;
+        bottom: auto;
+        top: 55px;
+        right: 5px;
+    }
+    #teleportPanel {
+        bottom: auto;
+        top: 95px;
+        right: 5px;
+    }
+}
+
+/* Mobile Landscape View */
+@media (max-width: 768px) and (orientation: landscape) {
+    #chatPanel {
+        width: 22vw;
+        height: 160px;
+        left: 5px;
+        bottom: 10px;
+        padding: 5px;
+        box-sizing: border-box;
+        flex-direction: column;
+    }
+    #chatPanel.chat-collapsed {
+        height: auto;
+    }
+    #chatMessages {
+        font-size: 10px;
+        padding: 3px;
+        flex: 1;
+        overflow-y: auto;
+    }
+    #chatInputContainer {
+        flex-shrink: 0;
+        display: flex;
+    }
+    #chatInput { font-size: 10px; }
+    #sendButton { font-size: 10px; padding: 3px 5px; }
+    #chatToggle { width: 30px; height: 30px; font-size: 16px; }
+    #playerList {
+        display: block;
+        top: 5px;
+        left: 5px;
+        padding: 2px;
+        font-size: 10px;
+        background: rgba(0, 0, 0, 0.7);
+    }
+    #playerList h3 {
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+    }
+    #controls {
+        top: 5px;
+        right: 5px;
+        padding: 3px;
+        font-size: 10px;
+    }
+    #controls p {
+        line-height: 1.2;
+        margin: 0;
+    }
+    #dpad {
+        right: 5px;
+        bottom: 5px;
+        transform: scale(0.8);
+        transform-origin: bottom right;
+    }
+    #teleportButton {
+        display: none;
+        width: 40px;
+        height: 40px;
+        line-height: 36px;
+        font-size: 10px;
+        bottom: auto;
+        top: 55px;
+        right: 5px;
+    }
+    #teleportPanel {
+        bottom: auto;
+        top: 95px;
+        right: 5px;
+    }
+}
+
+/* ── Touch device overrides — last in cascade so they win ── */
+:root { --vvh: 100vh; }
+
+@media (pointer: coarse) {
+    #controls { display: none !important; }
+
+    #dpad {
+        grid-template-columns: 56px 56px 56px !important;
+        grid-template-rows:    56px 56px 56px !important;
+        gap: 4px !important;
+        position: fixed !important;
+        right: max(12px, env(safe-area-inset-right)) !important;
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        transform: none !important;
+    }
+
+    /* Teleport button above dpad */
+    #teleportButton {
+        display: block !important;
+        position: fixed !important;
+        right: max(12px, env(safe-area-inset-right)) !important;
+        bottom: calc(max(12px, env(safe-area-inset-bottom)) + 184px) !important;
+        top: auto !important;
+        left: auto !important;
+    }
+
+    /* Teleport panel positioned by JS in toggleTeleportPanel() */
+    #teleportPanel {
+        position: fixed !important;
+        max-height: 50vh !important;
+        overflow-y: auto !important;
+        min-width: 140px;
+    }
+
+    #chatPanel {
+        position: fixed !important;
+        left: max(12px, env(safe-area-inset-left)) !important;
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        width: min(190px, 48vw) !important;
+    }
+    #chatMessages { font-size: 10px; }
+    #chatInput, #sendButton { font-size: 10px; }
+
+    #playerList {
+        top: max(8px, env(safe-area-inset-top)) !important;
+        left: max(8px, env(safe-area-inset-left)) !important;
+        font-size: 11px; padding: 4px 6px;
+    }
+}
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="ui">
+            <div id="loginPanel">
+                <h2>Welcome to the Virtual World!</h2>
+                <p>Please choose a username and avatar.</p>
+                <input type="text" id="usernameInput" placeholder="Enter your username">
+                <select id="avatarSelect">
+                    <option value="robot.glb">Robby</option>
+                    <option value="selena2.glb">Gomez</option>
+                    <option value="astronaut.glb">Astro</option>
+                    <option value="martin2.glb">Shorty</option>
+                    <option value="cub.glb">King</option>
+                </select>
+                <br>
+                <button id="loginButton">Join World</button>
+            </div>
+
+            <div id="loadingOverlay">
+                <div id="loadingText">Loading world&hellip;</div>
+            </div>
+            
+            <div id="resetButton">
+                <img src="../1worldthings/images/icons/reset_icon.png" alt="Reset World">
+            </div>
+            <div id="resetPanel">
+                <div id="resetHeader">
+                    <h3>Reset World - Be careful</h3>
+                </div>
+                <button id="resetYesButton" class="reset-button">Yes</button>
+                <button id="resetNoButton" class="reset-button">No</button>
+            </div>
+
+            <div id="playerList">
+                <h3>Players Online:</h3>
+                <div id="playerNames"></div>
+            </div>
+
+            <div id="dpad">
+                <div class="dpad-button" id="dpad-up">&#9650;</div>
+                <div class="dpad-button" id="dpad-left">&#9664;</div>
+                <div class="dpad-button" id="dpad-right">&#9654;</div>
+                <div class="dpad-button" id="dpad-down">&#9660;</div>
+            </div>
+
+            <div id="teleportButton">⬡ TP</div>
+            <div id="teleportPanel"></div>
+            
+            <div id="chatPanel">
+                <div id="chatHeader">
+                    <h3>Chat</h3>
+                    <button id="chatResizeBtn" title="Resize chat">⇔</button>
+                    <button id="chatToggle">−</button>
+                </div>
+                <div id="chatMessages"></div>
+                <div id="chatInputContainer">
+                    <input type="text" id="chatInput" placeholder="Type a message...">
+                    <button id="sendButton">Send</button>
+                </div>
+            </div>
+
+            <div id="billboardUploadPanel">
+                <h3 id="billboardTitle">Billboard</h3>
+                <p>Upload an image to display on this billboard.</p>
+                <input type="file" id="billboardImageInput" accept="image/*">
+                <br>
+                <button id="uploadBillboardButton">Upload</button>
+                <button id="closeBillboardButton">Close</button>
+            </div>
+
+            <div id="loadingMessage">
+                <h3>Uploading Image...</h3>
+                <div class="spinner"></div>
+                <p>Please wait while your image is being processed.</p>
+            </div>
+
+            <!-- Platform 1 panel -->
+            <div id="platformPanel1" class="platformPanel">
+                <h3>Platform 1 Object</h3>
+                <div id="platformStatus1">No object uploaded.</div>
+                <input type="file" id="platformFile1" accept=".glb">
+                <button id="platformUploadBtn1">Upload GLB</button>
+                <div class="scale-row" id="platformScaleRow1" style="display:none">
+                    <label>Scale:</label>
+                    <input type="range" id="platformScale1" min="0.2" max="3" step="0.05" value="1">
+                    <span id="platformScaleVal1">1.00</span>×
+                </div>
+                <div class="rot-row" id="platformRotRow1" style="display:none">
+                    <button id="platformRotL1">↺ 90°</button>
+                    <button id="platformRotR1">↻ 90°</button>
+                </div>
+                <button class="danger" id="platformDeleteBtn1" style="display:none">Delete Object</button>
+                <button id="platformCloseBtn1">Close</button>
+            </div>
+
+            <!-- Platform 2 panel -->
+            <div id="platformPanel2" class="platformPanel">
+                <h3>Platform 2 Object</h3>
+                <div id="platformStatus2">No object uploaded.</div>
+                <input type="file" id="platformFile2" accept=".glb">
+                <button id="platformUploadBtn2">Upload GLB</button>
+                <div class="scale-row" id="platformScaleRow2" style="display:none">
+                    <label>Scale:</label>
+                    <input type="range" id="platformScale2" min="0.2" max="3" step="0.05" value="1">
+                    <span id="platformScaleVal2">1.00</span>×
+                </div>
+                <div class="rot-row" id="platformRotRow2" style="display:none">
+                    <button id="platformRotL2">↺ 90°</button>
+                    <button id="platformRotR2">↻ 90°</button>
+                </div>
+                <button class="danger" id="platformDeleteBtn2" style="display:none">Delete Object</button>
+                <button id="platformCloseBtn2">Close</button>
+            </div>
+            <!-- Overlook delete panel -->
+            <div id="overlookDeletePanel" style="
+                display:none; position:fixed; top:50%; left:50%;
+                transform:translate(-50%,-50%);
+                background:rgba(0,0,0,0.92); padding:20px 28px;
+                border-radius:10px; pointer-events:all; color:white;
+                text-align:center; z-index:1000; border:2px solid #5a7a8a;
+                min-width:220px;">
+                <h3 style="margin-top:0; color:#9ec4d4;">Own Overlook</h3>
+                <p style="margin:8px 0 16px;">Delete this overlook platform?</p>
+                <button id="overlookDeleteYes" style="padding:8px 18px;margin:4px;border:none;border-radius:5px;background:#c0392b;color:white;cursor:pointer;font-size:13px;">Yes, Delete</button>
+                <button id="overlookDeleteNo"  style="padding:8px 18px;margin:4px;border:none;border-radius:5px;background:#4CAF50;color:white;cursor:pointer;font-size:13px;">No, Keep It</button>
+            </div>
+        </div>
+    </div>
+<script type="module">
+        import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+console.log("File loaded. Version: 2025-08-07 - v35 with temporary terrain areas");
+// Game variables
+let scene, camera, renderer, world;
+let player = { x: 0, z: 0, username: '', id: '', avatarUrl: '', avatarScale: 1 };
+let playerModel;
+let otherPlayers = {};
+let chatActive = false;
+let keys = {};
+let terrain, trees = [], rocks = [], cornerObjects = [];
+let temporaryTerrainAreas = []; // NEW: Array to track temporary terrain areas
+// let lake;
+let waterTexture;
+let waterMesh = null;
+let waterMat = null;
+let waterTexture2 = null;
+let clock = new THREE.Clock();
+let deltaClock = new THREE.Clock();
+let moveState = { forward: false, backward: false, left: false, right: false };
+let textureLoader;
+let gameInitialized = false;
+const gltfLoader = new GLTFLoader();
+let raycaster = new THREE.Raycaster();
+let down = new THREE.Vector3(0, -1, 0);
+const avatarCache = {};
+let grassTexture; // <--- GLOBAL VARIABLE FOR TEXTURE
+
+// Movement and camera
+let moveSpeed = 15;
+let lastKnownPlayerCount = 0;
+let lastTouchX = null;
+
+// Mobile detection
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.userAgent)) ||
+    window.matchMedia('(pointer: coarse)').matches;
+
+// World size
+const WORLD_SIZE = 400;
+
+// Sindex heightmap
+const HMAP_RES = 120;
+const hData = new Float32Array(HMAP_RES * HMAP_RES);
+const LAKE_SURFACE_HEIGHT = 4.2;
+
+function checkLakeDist(wx, wz) {
+    const d1 = Math.sqrt(Math.pow(wx + 105, 2) + Math.pow(wz + 105, 2));
+    const d2 = Math.sqrt(Math.pow(wx + 55,  2) + Math.pow(wz + 75,  2));
+    const wobble = (Math.sin(wx * 0.12) * 5.5) + (Math.cos(wz * 0.12) * 5.5);
+    return Math.min(d1, d2) + wobble;
+}
+
+function buildHeightmap() {
+    // Build base terrain
+    for (let row = 0; row < HMAP_RES; row++) {
+        for (let col = 0; col < HMAP_RES; col++) {
+            const wx = (col / (HMAP_RES - 1)) * WORLD_SIZE - 200;
+            const wz = (row / (HMAP_RES - 1)) * WORLD_SIZE - 200;
+            let h = (Math.sin(wx * 0.06) * 3.0) + 9.5;
+            const d = checkLakeDist(wx, wz);
+            if (d < 88) h = 0.5 + (6 - 0.5) * Math.pow(d / 88, 1.3);
+            hData[row * HMAP_RES + col] = h;
+        }
+    }
+
+    // Flatten terrain around object positions
+    const flatZones = [
+        { wx: -140, wz:  140, radius: 30 },  // pond
+        { wx:  140, wz: -140, radius: 35, sharpness: 6, fixedH: 12.5 },  // gazebo - fully flat pad
+        { wx:  100, wz:  100, radius: 20 },  // billboard 1
+        { wx:  130, wz:   70, radius: 20 },  // billboard 2
+        { wx:  -80, wz:   60, radius: 30 },  // platform 1
+        { wx:  150, wz:  160, radius: 30 },  // platform 2
+    ];
+
+    for (const zone of flatZones) {
+        const sharpness = zone.sharpness || 2;
+
+        // Determine target height - use fixedH if specified, else max within zone
+        let targetH = zone.fixedH !== undefined ? zone.fixedH : -Infinity;
+        if (targetH === -Infinity) {
+            for (let row = 0; row < HMAP_RES; row++) {
+                for (let col = 0; col < HMAP_RES; col++) {
+                    const wx = (col / (HMAP_RES - 1)) * WORLD_SIZE - 200;
+                    const wz = (row / (HMAP_RES - 1)) * WORLD_SIZE - 200;
+                    const dist = Math.sqrt(Math.pow(wx - zone.wx, 2) + Math.pow(wz - zone.wz, 2));
+                    if (dist < zone.radius) targetH = Math.max(targetH, hData[row * HMAP_RES + col]);
+                }
+            }
+        }
+
+        // Apply: fully flat inside inner 60% of radius, blend outward from there
+        const innerRadius = zone.radius * 0.6;
+        for (let row = 0; row < HMAP_RES; row++) {
+            for (let col = 0; col < HMAP_RES; col++) {
+                const wx = (col / (HMAP_RES - 1)) * WORLD_SIZE - 200;
+                const wz = (row / (HMAP_RES - 1)) * WORLD_SIZE - 200;
+                const dist = Math.sqrt(Math.pow(wx - zone.wx, 2) + Math.pow(wz - zone.wz, 2));
+                if (dist < zone.radius) {
+                    let t;
+                    if (dist < innerRadius) {
+                        t = 1; // completely flat
+                    } else {
+                        const edgeFraction = (dist - innerRadius) / (zone.radius - innerRadius);
+                        t = Math.pow(1 - edgeFraction, sharpness);
+                    }
+                    const idx = row * HMAP_RES + col;
+                    hData[idx] = hData[idx] * (1 - t) + targetH * t;
+                }
+            }
+        }
+    }
+}
+
+function isOverLake(x, z) {
+    return checkLakeDist(x, z) < 88;
+}
+
+// Teleport locations
+const teleportLocations = {
+    "Billboards":   { x: 110,    y: 1, z: 90 },
+    "Lake":         { x: -80,    y: 1, z: -80 },
+    "Pond":         { x: -140,   y: 1, z: 140 },
+    "Pavilion":     { x: 140,    y: 1, z: -140 },
+    "Platform 1":   { x: -80,    y: 1, z: 60 },
+    "Platform 2":   { x: 150,    y: 1, z: 160 }
+};
+
+// New object to define avatar scales by their filename
+const avatarScales = {
+    "default": 1,
+    "robot.glb": .7,
+    "selena2.glb": .7,
+    "astronaut.glb": .6,
+    "martin2.glb": .7,
+    "cub.glb": .75
+};
+
+// Declare a global controls variable
+let controls;
+let activeBillboard = null; // To track which billboard is being interacted with
+
+const worldObjects = [];
+
+const billboardObjects = [];
+
+// ── Platform system ──
+const PLATFORMS = [
+    { id: 1, x: -80, z:  60, radius: 26.25 },
+    { id: 2, x: 150, z: 160, radius: 26.25 }
+];
+const platformMeshes   = {};   // id → THREE.Group (the platform disc)
+const platformGlbNodes = {};   // id → THREE.Group|null (the loaded GLB on top)
+const platformSlots    = {};   // id → { occupied, scale, rotation } mirror of server JSON
+let activePlatform = null;     // id of the panel currently open
+
+// ── Own Overlook system ──
+let myOverlook = null;          // { mesh: THREE.Group, x, z, topY, playerId }
+let allOverlooks = [];          // array of { mesh, x, z, topY, playerId } — includes own + others
+const OVERLOOK_DISC_RADIUS = 8.75;   // 1/3 of 26.25
+const OVERLOOK_STEM_RADIUS  = 1;
+const OVERLOOK_HEIGHT_ABOVE_TERRAIN = 45;
+let overlookSnapOverride = false;  // true for one frame after teleporting to overlook
+
+//p2
+
+window.onload = function() {
+    addEventListeners();
+};
+
+async function initWorld() {
+    if (gameInitialized) {
+        console.log("World already initialized, skipping.");
+        return;
+    }
+    console.log("DEBUG: Initializing world...");
+    try {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 0);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+        // Handle WebGL context loss (common on mobile when app is backgrounded)
+        renderer.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            console.warn('WebGL context lost. Pausing render loop.');
+        }, false);
+
+        renderer.domElement.addEventListener('webglcontextrestored', () => {
+            console.log('WebGL context restored. Reinitialising...');
+            gameInitialized = false;
+            initWorld();
+        }, false);
+
+        textureLoader = new THREE.TextureLoader();
+        
+        // New Lighting
+        const light = new THREE.HemisphereLight(0xffffbb, 0x080820, 1.5);
+        scene.add(light);
+        
+        const ambientLight = new THREE.AmbientLight(0x404040, 2); // soft white light
+        scene.add(ambientLight);
+
+        const pmremGenerator = new THREE.PMREMGenerator( renderer );
+        scene.environment = pmremGenerator.fromScene( new RoomEnvironment(), 0.04 ).texture;
+
+        // Load the texture once and assign it to the global variable
+        grassTexture = textureLoader.load(
+            '../1worldthings/images/ground/grass.jpg',
+            () => { console.log('Grass texture loaded successfully.'); },
+            undefined, 
+            (error) => {
+                console.error('Failed to load grass texture, using solid color fallback:', error);
+            }
+        );
+        grassTexture.wrapS = THREE.RepeatWrapping;
+        grassTexture.wrapT = THREE.RepeatWrapping;
+
+        loadSkybox();
+        createTerrain();
+        createLake();
+        createShoreRocks();
+        
+        // New: Load GLB objects and billboards before trees
+        await loadWorldObjects();
+        await createBillboards();
+        await initPlatforms();
+        createTrees();
+
+        createTemporaryTerrainAreas(); // NEW: Create terrain areas after world objects
+        // createRocks();
+        createLowerWorld();
+        
+        populateTeleportList();
+
+        if (isMobile) {
+            document.getElementById('dpad').style.display = 'grid';
+        }
+        setVvh();
+
+        // Initializing OrbitControls
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 4.0;
+        controls.maxDistance = 4.5;
+        controls.minPolarAngle = Math.PI / 2;
+        controls.maxPolarAngle = Math.PI / 2;
+        controls.update();
+        
+        animate();
+        gameInitialized = true;
+        console.log("DEBUG: World initialization complete.");
+    } catch (error) {
+        console.error("CRITICAL ERROR: Failed to initialize world.", error);
+    }
+}
+
+// NEW FUNCTION: Create temporary terrain areas under GLB objects
+function createTemporaryTerrainAreas() {
+    console.log("DEBUG: Creating temporary terrain areas...");
+    
+    worldObjects.forEach((objData, index) => {
+        if (objData.terrainArea) {
+            const config = objData.terrainArea;
+            
+            // Calculate height and y position from yTop and yBottom
+            const height = Math.abs(config.yTop - config.yBottom);
+            const yPosition = config.yBottom + (height / 2);
+
+            // Create cylinder geometry for flat circular area
+            const geometry = new THREE.CylinderGeometry(
+                config.radius, 
+                config.radius, 
+                height, 
+                32
+            );
+            
+            // Use same material as main terrain
+            const material = new THREE.MeshStandardMaterial({
+                map: grassTexture,
+                color: 0x556B2F,
+                roughness: 0.8,
+                metalness: 0.1,
+            });
+            
+            const terrainArea = new THREE.Mesh(geometry, material);
+            
+            // Position the terrain area
+            terrainArea.position.set(
+                objData.position.x + config.distanceFromObject,
+                yPosition,
+                objData.position.z
+            );
+            
+            // Enable shadows
+            terrainArea.castShadow = true;
+            terrainArea.receiveShadow = true;
+            
+            // Add identification for collision detection
+            terrainArea.userData = { 
+                isTemporaryTerrain: true, 
+                objectIndex: index 
+            };
+            
+            scene.add(terrainArea);
+            temporaryTerrainAreas.push(terrainArea);
+            
+            console.log(`DEBUG: Created terrain area ${index} at position (${terrainArea.position.x}, ${terrainArea.position.y}, ${terrainArea.position.z}) with radius ${config.radius}`);
+        }
+    });
+    
+    console.log(`DEBUG: Created ${temporaryTerrainAreas.length} temporary terrain areas.`);
+}
+
+// NEW FUNCTION: Clear all temporary terrain areas
+function clearTemporaryTerrainAreas() {
+    console.log("DEBUG: Clearing temporary terrain areas...");
+    
+    temporaryTerrainAreas.forEach(terrainArea => {
+        scene.remove(terrainArea);
+        
+        // Clean up geometry and material
+        if (terrainArea.geometry) {
+            terrainArea.geometry.dispose();
+        }
+        if (terrainArea.material) {
+            if (terrainArea.material.map && terrainArea.material.map !== grassTexture) {
+                terrainArea.material.map.dispose();
+            }
+            terrainArea.material.dispose();
+        }
+    });
+    
+    temporaryTerrainAreas = [];
+    console.log("DEBUG: All temporary terrain areas cleared.");
+}
+
+function loadSkybox() {
+    console.log("DEBUG: Loading skybox textures...");
+    const path = "../1worldthings/images/skybox/";
+    const format = ".jpg";
+    const skyboxImages = [
+        path + 'posx' + format, path + 'negx' + format,
+        path + 'posy' + format, path + 'negy' + format,
+        path + 'posz' + format, path + 'negz' + format
+    ];
+    
+    const cubeTextureLoader = new THREE.CubeTextureLoader();
+    cubeTextureLoader.load(skyboxImages, (texture) => {
+        scene.background = texture;
+        console.log("DEBUG: Skybox loaded successfully.");
+    }, undefined, (error) => {
+        console.error('Failed to load skybox textures, using solid color fallback:', error);
+    });
+}
+
+function createTerrain() {
+    console.log("DEBUG: Creating sindex heightmap terrain...");
+    buildHeightmap();
+
+    const seg = HMAP_RES - 1;
+    const half = WORLD_SIZE / 2;
+    const positions = [], uvs = [], indices = [];
+
+    for (let row = 0; row < HMAP_RES; row++) {
+        for (let col = 0; col < HMAP_RES; col++) {
+            positions.push(
+                (col / seg) * WORLD_SIZE - half,
+                hData[row * HMAP_RES + col],
+                (row / seg) * WORLD_SIZE - half
+            );
+            uvs.push(col / seg, row / seg);
+        }
+    }
+    for (let row = 0; row < seg; row++) {
+        for (let col = 0; col < seg; col++) {
+            const a = row * HMAP_RES + col;
+            const b = a + 1;
+            const c = (row + 1) * HMAP_RES + col;
+            const d = c + 1;
+            indices.push(a, c, b);
+            indices.push(b, c, d);
+        }
+    }
+
+    const groundGeometry = new THREE.BufferGeometry();
+    groundGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    groundGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    groundGeometry.setIndex(indices);
+    groundGeometry.computeVertexNormals();
+
+    grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
+    grassTexture.repeat.set(40, 40);
+
+    const groundMaterial = new THREE.MeshStandardMaterial({
+        map: grassTexture,
+        color: 0x556B2F,
+        roughness: 0.8,
+        metalness: 0.1,
+    });
+
+    terrain = new THREE.Mesh(groundGeometry, groundMaterial);
+    terrain.receiveShadow = true;
+    scene.add(terrain);
+    console.log("DEBUG: Sindex terrain created.");
+}
+
+function createLake() {
+    const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 1, 1);
+
+    // Two canvas-based textures scrolling in different directions for a ripple-like effect
+    function makeWaterCanvas() {
+        const size = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Dark base
+        ctx.fillStyle = '#0a3a6e';
+        ctx.fillRect(0, 0, size, size);
+
+        // Bright specular blobs - larger and more opaque
+        for (let i = 0; i < 35; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const r = 8 + Math.random() * 30;
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+            grad.addColorStop(0, 'rgba(220, 245, 255, 0.85)');
+            grad.addColorStop(0.4, 'rgba(100, 190, 240, 0.45)');
+            grad.addColorStop(1, 'rgba(10, 60, 140, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Dark troughs for contrast - deeper and wider
+        for (let i = 0; i < 25; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const r = 12 + Math.random() * 35;
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+            grad.addColorStop(0, 'rgba(0, 15, 60, 0.60)');
+            grad.addColorStop(0.5, 'rgba(0, 20, 80, 0.25)');
+            grad.addColorStop(1, 'rgba(0, 20, 80, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return canvas;
+    }
+
+    waterTexture = new THREE.CanvasTexture(makeWaterCanvas());
+    waterTexture.wrapS = waterTexture.wrapT = THREE.RepeatWrapping;
+    waterTexture.repeat.set(8, 8);
+
+    waterTexture2 = new THREE.CanvasTexture(makeWaterCanvas());
+    waterTexture2.wrapS = waterTexture2.wrapT = THREE.RepeatWrapping;
+    waterTexture2.repeat.set(6, 6);
+
+    waterMat = new THREE.MeshPhongMaterial({
+        map: waterTexture,
+        color: 0x1a6fa8,
+        emissive: 0x0a3060,
+        emissiveIntensity: 0.3,
+        shininess: 120,
+        specular: new THREE.Color(0.8, 0.95, 1.0),
+        transparent: true,
+        opacity: 0.88,
+        side: THREE.FrontSide,
+    });
+
+    waterMesh = new THREE.Mesh(waterGeo, waterMat);
+    waterMesh.rotation.x = -Math.PI / 2;
+    waterMesh.position.y = LAKE_SURFACE_HEIGHT;
+    waterMesh.receiveShadow = true;
+    scene.add(waterMesh);
+    console.log("DEBUG: Lake created with stable scrolling water material.");
+}
+
+function createShoreRocks() {
+    const rGeo = new THREE.DodecahedronGeometry(1.2, 0);
+    const rMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 });
+
+    function spawnRock(x, h, z, scaleMult) {
+        const r = new THREE.Mesh(rGeo, rMat);
+        r.position.set(x, h - 0.2, z);
+        r.rotation.set(Math.random(), Math.random(), Math.random());
+        const s = (0.6 + Math.random()) * (scaleMult || 1.0);
+        r.scale.set(s, s * 0.6, s);
+        r.castShadow = true;
+        scene.add(r);
+    }
+
+    for (let angle = 0; angle < Math.PI * 2; angle += 0.04) {
+        const zoneDensity = Math.sin(angle * 3) * 0.5 + 0.5;
+        if (Math.random() < zoneDensity * 0.7) {
+            for (let radius = 5; radius < 250; radius += 1.5) {
+                const rx = Math.cos(angle) * radius - 80;
+                const rz = Math.sin(angle) * radius - 90;
+                const h = getTerrainHeight(rx, rz);
+                if (h >= 4.25 && h <= 4.8) {
+                    spawnRock(rx, h, rz);
+                    if (Math.random() > 0.6) spawnRock(rx + (Math.random()-0.5)*3, h, rz + (Math.random()-0.5)*3, 0.5);
+                    break;
+                }
+            }
+        }
+    }
+    console.log("DEBUG: Shore rocks created.");
+}
+
+function createLowerWorld() {
+    console.log("DEBUG: Creating lower world plane...");
+    const lowerWorldGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 1, 1);
+    
+    const lowerWorldMaterial = new THREE.MeshStandardMaterial({
+        map: grassTexture,
+        color: 0x556B2F,
+        roughness: 0.8,
+        metalness: 0.1,
+    });
+    
+    const lowerWorld = new THREE.Mesh(lowerWorldGeometry, lowerWorldMaterial);
+    lowerWorld.rotation.x = -Math.PI / 2;
+    lowerWorld.position.y = -11;
+    lowerWorld.receiveShadow = true;
+    scene.add(lowerWorld);
+    console.log("DEBUG: Lower world plane created.");
+}
+
+function createTrees() {
+    console.log("DEBUG: Loading trees...");
+
+    const treeTypes = [
+        { file: './birch_trees_pack__ps1_low_poly.glb', scale: .5 },
+        { file: './pine_tree.glb', scale: 0.06 }
+    ];
+
+    treeTypes.forEach(({ file, scale }) => {
+        gltfLoader.load(file, (g) => {
+            let placed = 0;
+            let attempts = 0;
+            while (placed < 100 && attempts < 2000) {
+                attempts++;
+                const tx = Math.random() * 380 - 190;
+                const tz = Math.random() * 380 - 190;
+                const h = getTerrainHeight(tx, tz);
+                const nearGazebo   = Math.sqrt(Math.pow(tx - 140, 2) + Math.pow(tz + 140, 2)) < 40;
+                const nearPond     = Math.sqrt(Math.pow(tx + 140, 2) + Math.pow(tz - 140, 2)) < 40;
+                const nearPlatform1 = Math.sqrt(Math.pow(tx + 80, 2) + Math.pow(tz - 60,  2)) < 30;
+                const nearPlatform2 = Math.sqrt(Math.pow(tx - 150, 2) + Math.pow(tz - 160, 2)) < 30;
+                if (h > 5.0 && !isOverLake(tx, tz) && !nearGazebo && !nearPond && !nearPlatform1 && !nearPlatform2) {
+                    const t = g.scene.clone();
+                    t.position.set(tx, h, tz);
+                    t.scale.set(scale, scale, scale);
+                    scene.add(t);
+                    trees.push(t);
+                    placed++;
+                }
+            }
+            console.log(`DEBUG: Placed ${placed} trees from ${file}`);
+        }, undefined, (err) => {
+            console.warn(`Tree GLB not found: ${file}`, err);
+        });
+    });
+}
+
+/* function createRocks() {
+    console.log("DEBUG: Creating rocks...");
+    const rockCount = 50; 
+    const rockTexture = textureLoader.load(
+        'https://cdn.polyhaven.com/asset_img/primary/rock_01.png?width=2560',
+        (texture) => {
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+        },
+        undefined,
+        (error) => {
+            console.error('Failed to load new rock texture, using solid color fallback:', error);
+        }
+    );
+    const rockMaterial = new THREE.MeshStandardMaterial({
+        color: 0xA9A9A9,
+        map: rockTexture
+    });
+    for (let i = 0; i < rockCount; i++) {
+        const rockGeometry = new THREE.SphereGeometry(Math.random() * 2 + 0.5, 8, 8);
+        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+        const angle = Math.random() * Math.PI * 2;
+        const rockSpawnRadius = LAKE_RADIUS + 3 + (Math.random() * 5);
+        const x = LAKE_POSITION_X + Math.cos(angle) * rockSpawnRadius;
+        const z = LAKE_POSITION_Z + Math.sin(angle) * rockSpawnRadius;
+        const terrainHeight = getTerrainHeight(x, z);
+        const y = terrainHeight + (Math.random() * 0.5) + 0.5;
+        rock.position.set(x, y, z);
+        rock.castShadow = true;
+        rock.receiveShadow = true;
+        scene.add(rock);
+        rocks.push(rock);
+    }
+    console.log("DEBUG: Rocks created.");
+} */
+
+function createTree() {
+    const group = new THREE.Group();
+    if (Math.random() > 0.5) {
+        const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = 2;
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        const leavesGeometry1 = new THREE.ConeGeometry(2.5, 3, 8);
+        const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+        const leaves1 = new THREE.Mesh(leavesGeometry1, leavesMaterial);
+        leaves1.position.y = 4;
+        leaves1.castShadow = true;
+        leaves1.receiveShadow = true;
+        const leavesGeometry2 = new THREE.ConeGeometry(2, 3, 8);
+        const leaves2 = new THREE.Mesh(leavesGeometry2, leavesMaterial);
+        leaves2.position.y = 6;
+        leaves2.castShadow = true;
+        leaves2.receiveShadow = true;
+        group.add(trunk);
+        group.add(leaves1);
+        group.add(leaves2);
+    } else {
+        const trunkGeometry = new THREE.CylinderGeometry(0.7, 0.7, 3, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = 1.5;
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        const leavesGeometry1 = new THREE.SphereGeometry(2.5, 16, 16);
+        const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x556B2F });
+        const leaves1 = new THREE.Mesh(leavesGeometry1, leavesMaterial);
+        leaves1.position.y = 4.0;
+        leaves1.castShadow = true;
+        leaves1.receiveShadow = true;
+        const leavesGeometry2 = new THREE.SphereGeometry(2.0, 16, 16);
+        const leaves2 = new THREE.Mesh(leavesGeometry2, leavesMaterial);
+        leaves2.position.y = 6.5;
+        leaves2.castShadow = true;
+        leaves2.receiveShadow = true;
+        group.add(trunk);
+        group.add(leaves1);
+        group.add(leaves2);
+    }
+    return group;
+}
+
+function getTerrainHeight(x, z) {
+    // Convert world coords to heightmap grid position (floating point)
+    const gx = ((x + 200) / WORLD_SIZE) * (HMAP_RES - 1);
+    const gz = ((z + 200) / WORLD_SIZE) * (HMAP_RES - 1);
+
+    // Clamp to grid bounds
+    const col0 = Math.max(0, Math.min(HMAP_RES - 2, Math.floor(gx)));
+    const row0 = Math.max(0, Math.min(HMAP_RES - 2, Math.floor(gz)));
+    const col1 = col0 + 1;
+    const row1 = row0 + 1;
+
+    // Fractional part for interpolation
+    const tx = gx - col0;
+    const tz = gz - row0;
+
+    // Sample four corners
+    const h00 = hData[row0 * HMAP_RES + col0];
+    const h10 = hData[row0 * HMAP_RES + col1];
+    const h01 = hData[row1 * HMAP_RES + col0];
+    const h11 = hData[row1 * HMAP_RES + col1];
+
+    // Bilinear interpolation
+    return (h00 * (1 - tx) + h10 * tx) * (1 - tz) +
+           (h01 * (1 - tx) + h11 * tx) * tz;
+}
+
+function createTextSprite(text, scale) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const font = "Bold 40px Arial";
+    context.font = font;
+    const textMetrics = context.measureText(text);
+    canvas.width = textMetrics.width + 10;
+    canvas.height = 50;
+    context.font = font;
+    context.fillStyle = "rgba(255, 255, 255, 1.0)";
+    context.fillText(text, 5, 40);
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(canvas.width / 100 * scale, canvas.height / 100 * scale, 1);
+    return sprite;
+}
+
+async function createAvatar(username, avatarUrl, scale = 1) {
+    console.log(`DEBUG: Creating avatar for URL: ${avatarUrl} with scale: ${scale}`);
+    const avatarGroup = new THREE.Group();
+    
+    let model;
+    
+    // Check for a valid avatarUrl, including `undefined`
+    if (!avatarUrl || avatarUrl === 'default' || avatarUrl === 'undefined') {
+         const bodyGeometry = new THREE.BoxGeometry(1, 2, 0.5);
+         const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+         body.position.y = 1;
+         
+         const headGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+         const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff99 });
+         const head = new THREE.Mesh(headGeometry, headMaterial);
+         head.position.y = 2.5;
+
+         model = new THREE.Group();
+         model.add(body, head);
+         model.scale.set(scale, scale, scale);
+
+    } else {
+         try {
+             const gltf = await gltfLoader.loadAsync(`../1worldthings/avatars/${avatarUrl}`);
+             model = gltf.scene;
+             model.scale.set(scale, scale, scale);
+             console.log(`DEBUG: GLTF avatar loaded successfully from ../1worldthings/avatars/${avatarUrl}`);
+         } catch (error) {
+             console.error(`ERROR: Failed to load GLTF avatar from ../1worldthings/avatars/${avatarUrl}.`, error);
+             const geometry = new THREE.BoxGeometry(1, 2, 1);
+             const material = new THREE.MeshStandardMaterial({ color: 0x888888 });
+             const basicAvatar = new THREE.Mesh(geometry, material);
+             model = basicAvatar;
+             console.log('DEBUG: Using fallback basic avatar.');
+         }
+    }
+
+    model.castShadow = true;
+    model.receiveShadow = true;
+    avatarGroup.add(model);
+    
+    const sprite = createTextSprite(username, scale);
+    sprite.position.y = 6.0 * scale;
+    avatarGroup.add(sprite);
+
+    return avatarGroup;
+}
+
+async function updatePlayers(playersData) {
+    if (!scene) return;
+
+    // Filter out stale players — if lastSeen is more than 12 seconds ago, treat as disconnected
+    const now = Math.floor(Date.now() / 1000);
+    const activePlayerIds = Object.keys(playersData).filter(id => {
+        if (id === player.id) return false;
+        const p = playersData[id];
+        if (p.lastSeen && (now - p.lastSeen) > 12) return false;
+        return true;
+    });
+    const playersToRemove = Object.keys(otherPlayers).filter(id => !activePlayerIds.includes(id));
+
+    playersToRemove.forEach(id => {
+        if (otherPlayers[id]) {
+            scene.remove(otherPlayers[id]);
+            delete otherPlayers[id];
+        }
+    });
+
+    for (let id of activePlayerIds) {
+        const data = playersData[id];
+
+        if (!otherPlayers[id]) {
+            const newPlayerModel = await createAvatar(data.username, data.avatarUrl, data.avatarScale);
+            // Check player is still active after async load - they may have disconnected while avatar was loading
+            if (!activePlayerIds.includes(id)) {
+                console.log('Player ' + id + ' disconnected while avatar was loading, skipping.');
+                continue;
+            }
+            // Check a different call hasn't already added this player
+            if (otherPlayers[id]) {
+                console.log('Player ' + id + ' already added by another call, skipping duplicate.');
+                continue;
+            }
+            newPlayerModel.position.set(data.position.x, data.position.y, data.position.z);
+            newPlayerModel.rotation.y = data.rotationY;
+            newPlayerModel.userData = { username: data.username, avatarUrl: data.avatarUrl, avatarScale: data.avatarScale };
+            scene.add(newPlayerModel);
+            otherPlayers[id] = newPlayerModel;
+        } else {
+            const existingPlayer = otherPlayers[id];
+            existingPlayer.position.set(data.position.x, data.position.y, data.position.z);
+            existingPlayer.rotation.y = data.rotationY;
+            if (existingPlayer.userData.avatarScale !== data.avatarScale) {
+                existingPlayer.scale.set(data.avatarScale, data.avatarScale, data.avatarScale);
+                existingPlayer.userData.avatarScale = data.avatarScale;
+                const nameSprite = existingPlayer.children.find(child => child.isSprite);
+                if (nameSprite) {
+                     nameSprite.position.y = 3.5 * data.avatarScale;
+                }
+            }
+        }
+    }
+    updatePlayerList(playersData);
+}
+
+function updateChat(chatData) {
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    if (!chatMessagesDiv) return;
+
+    // --- NEW LINE ADDED HERE ---
+    chatMessagesDiv.innerHTML = ''; // Clear all existing messages before adding new ones.
+    // -------------------------
+
+    chatData.sort((a, b) => {
+        const timestampA = a.timestamp;
+        const timestampB = b.timestamp;
+        return timestampA - timestampB;
+    });
+
+    chatData.forEach(msg => {
+        const messageElement = document.createElement('p');
+        messageElement.innerHTML = `<strong>${msg.senderUsername}:</strong> ${msg.text}`;
+        chatMessagesDiv.appendChild(messageElement);
+    });
+    chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+}
+
+function updatePlayerList(playersData) {
+    const playerNames = document.getElementById('playerNames');
+    if (!playerNames) return;
+    const names = [player.username];
+    Object.values(playersData).forEach(p => {
+         if (p.id !== player.id) {
+             names.push(p.username);
+         }
+    });
+    playerNames.innerHTML = names.join('<br>');
+    lastKnownPlayerCount = names.length;
+}
+
+// MODIFIED: Enhanced collision detection to include temporary terrain areas
+function updateMovement() {
+    if (!playerModel || !terrain || !controls) return;
+    const delta = deltaClock.getDelta();
+    const speed = moveSpeed * delta;
+    
+    const direction = new THREE.Vector3();
+    controls.object.getWorldDirection(direction);
+    direction.y = 0;
+    direction.normalize();
+
+    const sideways = new THREE.Vector3();
+    sideways.crossVectors(direction, new THREE.Vector3(0, 1, 0));
+
+    const movementVector = new THREE.Vector3();
+    let moving = false;
+
+    if (moveState.forward) {
+        movementVector.add(direction);
+        moving = true;
+    }
+    if (moveState.backward) {
+        movementVector.sub(direction);
+        moving = true;
+    }
+    if (moveState.left) {
+        movementVector.sub(sideways);
+        moving = true;
+    }
+    if (moveState.right) {
+        movementVector.add(sideways);
+        moving = true;
+    }
+
+    if (moving) {
+        movementVector.normalize().multiplyScalar(speed);
+        playerModel.position.add(movementVector);
+        // Set rotation directly from movement direction — works regardless of model origin
+        playerModel.rotation.y = Math.atan2(movementVector.x, movementVector.z);
+    }
+    
+    // Snap avatar to terrain, never below water surface
+    const terrainY = getTerrainHeight(playerModel.position.x, playerModel.position.z);
+    let groundY = Math.max(terrainY, LAKE_SURFACE_HEIGHT);
+
+    // If avatar is over a platform disc or its GLB object, stand on top
+    for (var pi = 0; pi < PLATFORMS.length; pi++) {
+        var pd = PLATFORMS[pi];
+        var dx = playerModel.position.x - pd.x;
+        var dz = playerModel.position.z - pd.z;
+        if (Math.sqrt(dx*dx + dz*dz) < pd.radius) {
+            var discTopY = getTerrainHeight(pd.x, pd.z) + 0.75;
+            if (discTopY > groundY) groundY = discTopY;
+
+            // Raycast down against the GLB mesh for walkable surfaces
+            // Only use hit if avatar is already near or above that surface (prevents auto-climbing roofs)
+            var glbNode = platformGlbNodes[pd.id];
+            if (glbNode) {
+                var rayOrigin = new THREE.Vector3(playerModel.position.x, playerModel.position.y + 20, playerModel.position.z);
+                var rayDir = new THREE.Vector3(0, -1, 0);
+                var downRay = new THREE.Raycaster(rayOrigin, rayDir, 0, 60);
+                var glbMeshes = [];
+                glbNode.traverse(function(c) { if (c.isMesh) glbMeshes.push(c); });
+                var hits = downRay.intersectObjects(glbMeshes, false);
+                if (hits.length > 0) {
+                    var hitY = hits[0].point.y;
+                    // Only stand on this surface if avatar is already at or above it (within 2 units)
+                    // This prevents the avatar being pushed up onto roofs from ground level
+                    if (hitY > groundY && playerModel.position.y >= hitY - 2.0) {
+                        groundY = hitY;
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    // Check if avatar is within any overlook disc radius
+    var onOverlook = false;
+    for (var oi = 0; oi < allOverlooks.length; oi++) {
+        var ol = allOverlooks[oi];
+        var odx = playerModel.position.x - ol.x;
+        var odz = playerModel.position.z - ol.z;
+        if (Math.sqrt(odx*odx + odz*odz) < OVERLOOK_DISC_RADIUS) {
+            if (overlookSnapOverride || playerModel.position.y >= ol.topY - 3.0) {
+                onOverlook = true;
+                playerModel.position.y = ol.topY + 0.5 * player.avatarScale;
+                overlookSnapOverride = false;
+                break;
+            }
+        }
+    }
+
+    if (!onOverlook) {
+        playerModel.position.y = groundY + 0.5 * player.avatarScale;
+    }
+    
+    controls.target.copy(playerModel.position.clone().add(new THREE.Vector3(0, 3.0, 0)));
+    controls.update();
+
+    const minCameraY = playerModel.position.y + 1;
+    if (camera.position.y < minCameraY) {
+        camera.position.y = minCameraY;
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    if (!renderer || !scene || !camera) {
+        return;
+    }
+    try {
+        updateMovement();
+        const time = clock.getElapsedTime();
+        const safeTime = time % 600;  // reset every 10 minutes to keep numbers small and safe
+        trees.forEach((tree, index) => {
+            tree.rotation.z = Math.sin(safeTime + index) * 0.05;
+        });
+
+        // Scroll water textures in opposite directions for a gentle ripple effect
+        if (waterTexture) {
+            waterTexture.offset.x = (waterTexture.offset.x + 0.00030) % 1.0;
+            waterTexture.offset.y = (waterTexture.offset.y + 0.00020) % 1.0;
+        }
+        if (waterTexture2) {
+            waterTexture2.offset.x = ((waterTexture2.offset.x - 0.00025) % 1.0 + 1.0) % 1.0;
+            waterTexture2.offset.y = (waterTexture2.offset.y + 0.00018) % 1.0;
+        }
+
+        if(playerModel) {
+            const nameSprite = playerModel.children.find(child => child.isSprite);
+            if (nameSprite) {
+                nameSprite.lookAt(camera.position);
+            }
+        }
+        Object.keys(otherPlayers).forEach(id => {
+            if (otherPlayers[id]) {
+                const nameSprite = otherPlayers[id].children.find(child => child.isSprite);
+                if (nameSprite) {
+                    nameSprite.lookAt(camera.position);
+                }
+            }
+        });
+        renderer.render(scene, camera);
+    } catch (e) {
+        console.error('Animate loop error:', e);
+        // Don't let a single error kill the render loop
+    }
+}
+function addEventListeners() {
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    window.addEventListener('resize', onWindowResize, false);
+    
+    document.addEventListener('touchstart', onTouchStart, false);
+    document.addEventListener('touchmove', onTouchMove, false);
+    document.addEventListener('touchend', onTouchEnd, false);
+
+    const loginButton = document.getElementById('loginButton');
+    if (loginButton) loginButton.addEventListener('click', onLogin);
+
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) chatInput.addEventListener('keydown', onChatInputKeyDown);
+
+    const sendButton = document.getElementById('sendButton');
+    if (sendButton) sendButton.addEventListener('click', sendMessage);
+
+    const chatToggle = document.getElementById('chatToggle');
+    if (chatToggle) chatToggle.addEventListener('click', toggleChatView);
+
+
+    const dpadUp = document.getElementById('dpad-up');
+    const dpadDown = document.getElementById('dpad-down');
+    const dpadLeft = document.getElementById('dpad-left');
+    const dpadRight = document.getElementById('dpad-right');
+
+    if (dpadUp) dpadUp.addEventListener('touchstart', (e) => { e.preventDefault(); moveState.forward = true; });
+    if (dpadUp) dpadUp.addEventListener('touchend', () => { moveState.forward = false; });
+    if (dpadDown) dpadDown.addEventListener('touchstart', (e) => { e.preventDefault(); moveState.backward = true; });
+    if (dpadDown) dpadDown.addEventListener('touchend', () => { moveState.backward = false; });
+    if (dpadLeft) dpadLeft.addEventListener('touchstart', (e) => { e.preventDefault(); moveState.left = true; });
+    if (dpadLeft) dpadLeft.addEventListener('touchend', () => { moveState.left = false; });
+    if (dpadRight) dpadRight.addEventListener('touchstart', (e) => { e.preventDefault(); moveState.right = true; });
+    if (dpadRight) dpadRight.addEventListener('touchend', () => { moveState.right = false; });
+
+    const teleportButton = document.getElementById('teleportButton');
+    if (teleportButton) teleportButton.addEventListener('click', toggleTeleportPanel);
+
+    const uploadBillboardButton = document.getElementById('uploadBillboardButton');
+    if (uploadBillboardButton) uploadBillboardButton.addEventListener('click', uploadBillboardImage);
+    
+    const closeBillboardButton = document.getElementById('closeBillboardButton');
+    if (closeBillboardButton) closeBillboardButton.addEventListener('click', closeBillboardPanel);
+    
+    const resetButton = document.getElementById('resetButton');
+    if (resetButton) resetButton.addEventListener('click', toggleResetPanel);
+    
+    const resetYesButton = document.getElementById('resetYesButton');
+    if (resetYesButton) resetYesButton.addEventListener('click', resetWorld);
+    
+    const resetNoButton = document.getElementById('resetNoButton');
+    if (resetNoButton) resetNoButton.addEventListener('click', closeResetPanel);
+
+    initOverlookUI();
+
+    // Platform panels
+    [1, 2].forEach(id => {
+        document.getElementById(`platformUploadBtn${id}`).addEventListener('click', () => uploadPlatformObject(id));
+        document.getElementById(`platformDeleteBtn${id}`).addEventListener('click', () => deletePlatformObject(id));
+        document.getElementById(`platformCloseBtn${id}`).addEventListener('click', () => closePlatformPanel(id));
+        document.getElementById(`platformRotL${id}`).addEventListener('click', () => rotatePlatformObject(id, -90));
+        document.getElementById(`platformRotR${id}`).addEventListener('click', () => rotatePlatformObject(id,  90));
+
+        const slider = document.getElementById(`platformScale${id}`);
+        const valSpan = document.getElementById(`platformScaleVal${id}`);
+        slider.addEventListener('input', () => {
+            valSpan.textContent = parseFloat(slider.value).toFixed(2);
+        });
+        slider.addEventListener('change', () => savePlatformScale(id, parseFloat(slider.value)));
+    });
+}
+
+function onKeyDown(event) {
+    if (document.activeElement === document.getElementById('chatInput')) return;
+    switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+            moveState.forward = true;
+            break;
+        case 'KeyS':
+        case 'ArrowDown':
+            moveState.backward = true;
+            break;
+        case 'KeyA':
+        case 'ArrowLeft':
+            moveState.left = true;
+            break;
+        case 'KeyD':
+        case 'ArrowRight':
+            moveState.right = true;
+            break;
+        case 'KeyT':
+            toggleChat();
+            break;
+    }
+}
+
+function onKeyUp(event) {
+    switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+            moveState.forward = false;
+            break;
+        case 'KeyS':
+        case 'ArrowDown':
+            moveState.backward = false;
+            break;
+        case 'KeyA':
+        case 'ArrowLeft':
+            moveState.left = false;
+            break;
+        case 'KeyD':
+        case 'ArrowRight':
+            moveState.right = false;
+            break;
+    }
+}
+
+function onTouchStart(event) {
+    if (!playerModel) return;
+    lastTouchX = event.touches[0].clientX;
+}
+
+function onTouchMove(event) {
+    if (lastTouchX === null || !playerModel) return;
+    const currentTouchX = event.touches[0].clientX;
+    const deltaX = currentTouchX - lastTouchX;
+    lastTouchX = currentTouchX;
+}
+
+function onTouchEnd(event) {
+    lastTouchX = null;
+}
+
+function setVvh() {
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--vvh', h + 'px');
+}
+
+function applyResize() {
+    if (!camera || !renderer) return;
+    const w = window.visualViewport ? window.visualViewport.width  : window.innerWidth;
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    setVvh();
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    if (controls) controls.update();
+}
+
+function onWindowResize() { setTimeout(applyResize, 100); }
+
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', applyResize);
+} else {
+    window.addEventListener('resize', onWindowResize, false);
+}
+
+window.addEventListener('orientationchange', function() {
+    setTimeout(applyResize, 100);
+    setTimeout(applyResize, 400);
+    setTimeout(applyResize, 800);
+}, false);
+
+setVvh();
+
+async function onLogin() {
+    console.log("DEBUG: Login button clicked.");
+    try {
+        const usernameInput = document.getElementById('usernameInput');
+        const avatarSelect = document.getElementById('avatarSelect');
+        
+        const username = usernameInput.value.trim();
+        const avatarUrl = avatarSelect.value;
+        
+        if (!username) {
+            alert("Please enter a username.");
+            return;
+        }
+        
+        player.username = username;
+        // Reuse a persistent ID stored in localStorage so reloads overwrite
+        // the same server entry instead of creating new ghost players
+        let storedId = localStorage.getItem('playerId');
+        if (!storedId) {
+            storedId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('playerId', storedId);
+        }
+        player.id = storedId;
+        player.avatarUrl = avatarUrl;
+        player.avatarScale = avatarScales[avatarUrl] || 1; 
+
+        document.getElementById('loginPanel').style.display = 'none';
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.style.display = 'flex';
+
+        const chatPanel = document.getElementById('chatPanel');
+        chatPanel.style.display = 'flex';
+        chatPanel.classList.add('chat-expanded');
+        document.getElementById('playerList').style.display = 'block';
+        
+        const teleportBtn = document.getElementById('teleportButton');
+        if (teleportBtn) teleportBtn.style.display = 'block';
+        
+        document.getElementById('resetButton').style.display = 'none'; // Hide reset button once logged in
+        document.getElementById('resetPanel').style.display = 'none'; // Hide reset panel once logged in
+
+
+        await initWorld();
+
+        // FIX: The event listener is now added here, after the renderer is created.
+        renderer.domElement.addEventListener('click', onDocumentClick, false);
+        
+        console.log("DEBUG: Creating player avatar...");
+        playerModel = await createAvatar(player.username, player.avatarUrl, player.avatarScale);
+        scene.add(playerModel);
+
+        // Spawn in positive quadrant (away from lake) matching sindex layout
+        let initialX, initialZ;
+        do {
+            initialX = Math.random() * 150 + 20;
+            initialZ = Math.random() * 150 + 20;
+        } while (isOverLake(initialX, initialZ));
+
+        const spawnY = getTerrainHeight(initialX, initialZ) + 0.5 * player.avatarScale;
+        playerModel.position.set(initialX, spawnY, initialZ);
+
+        camera.position.set(initialX, 2, initialZ + 5);
+        controls.target.set(playerModel.position.x, playerModel.position.y + 3.0, playerModel.position.z);
+        controls.update();
+
+        // World and avatar ready — hide loading overlay
+        loadingOverlay.style.display = 'none';
+
+        console.log("DEBUG: About to update player on server...");
+        await updatePlayerOnServer();
+        console.log("DEBUG: Player update successful. Starting intervals.");
+        setInterval(updatePlayerLoop, 500);
+        setInterval(fetchPlayers, 500);
+        setInterval(fetchChatMessages, 2000);
+        setInterval(loadExistingBillboards, 5000); // <-- ADDED THIS LINE
+        setInterval(pollPlatformObjects, 4000);    // platform GLB sync
+        setInterval(pollOverlooks, 4000);          // overlook sync
+        window.addEventListener('beforeunload', onBeforeUnload);
+    } catch (error) {
+        console.error("CRITICAL ERROR: An unhandled error occurred during login.", error);
+    }
+}
+
+async function updatePlayerLoop() {
+    if (playerModel) {
+        await updatePlayerOnServer();
+    }
+}
+
+function onBeforeUnload() {
+    const formData = new URLSearchParams();
+    formData.append('id', player.id);
+    formData.append('disconnect', true);
+    navigator.sendBeacon('update_player.php', formData.toString());
+
+    // Auto-delete own overlook on exit
+    if (myOverlook) {
+        const od = new URLSearchParams();
+        od.append('action', 'delete');
+        od.append('playerId', player.id);
+        navigator.sendBeacon('overlook.php', od.toString());
+    }
+}
+
+function toggleChat() {
+    chatActive = !chatActive;
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        if (chatActive) {
+            chatInput.focus();
+        } else {
+            chatInput.blur();
+        }
+    }
+}
+
+function onChatInputKeyDown(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+async function sendMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+
+    if (message && player.id) {
+        const messageData = new URLSearchParams();
+        messageData.append('senderUsername', player.username);
+        messageData.append('text', message);
+        messageData.append('id', player.id);
+
+        try {
+            const response = await fetch('send_message.php', {
+                method: 'POST',
+                body: messageData,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+            if (response.ok) {
+                chatInput.value = '';
+                fetchChatMessages();
+            } else {
+                console.error("Failed to send message via PHP:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error sending message via PHP:", error);
+        }
+    }
+}
+
+async function fetchChatMessages() {
+    try {
+        const response = await fetch('get_messages.php');
+        const messages = await response.json();
+        updateChat(messages);
+    } catch (error) {
+            console.error("Error fetching chat messages:", error);
+    }
+}
+
+async function fetchPlayers() {
+    try {
+        const response = await fetch('get_players.php');
+        const playersData = await response.json();
+        updatePlayers(playersData);
+    } catch(error) {
+            console.error("Error fetching player data:", error);
+    }
+}
+
+async function updatePlayerOnServer() {
+    if (!playerModel) return;
+
+    const playerData = new URLSearchParams();
+    playerData.append('id', player.id);
+    playerData.append('username', player.username);
+    playerData.append('avatarUrl', player.avatarUrl);
+    playerData.append('positionX', playerModel.position.x);
+    playerData.append('positionY', playerModel.position.y);
+    playerData.append('positionZ', playerModel.position.z);
+    playerData.append('rotationY', playerModel.rotation.y);
+    playerData.append('avatarScale', player.avatarScale);
+    playerData.append('lastSeen', Math.floor(Date.now() / 1000));
+    
+    try {
+        const response = await fetch('update_player.php', {
+            method: 'POST',
+            body: playerData,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+        if (!response.ok) {
+            console.error("Failed to update player on server:", response.statusText);
+        }
+    } catch(error) {
+        console.error("Error updating player on server:", error);
+    }
+}
+
+function toggleChatView() {
+    const chatPanel = document.getElementById('chatPanel');
+    const chatToggle = document.getElementById('chatToggle');
+    if (!chatPanel || !chatToggle) return;
+
+    if (chatPanel.classList.contains('chat-collapsed')) {
+        // collapsed → expanded: show messages and input
+        chatPanel.classList.remove('chat-collapsed');
+        chatToggle.textContent = '−';
+    } else {
+        // expanded → collapsed: hide messages and input, show header only
+        chatPanel.classList.remove('chat-expanded', 'chat-minimal');
+        chatPanel.classList.add('chat-collapsed');
+        chatToggle.textContent = '+';
+    }
+}
+
+// Teleport functions
+function populateTeleportList() {
+    const teleportPanel = document.getElementById('teleportPanel');
+    teleportPanel.innerHTML = '';
+    
+    for (const name in teleportLocations) {
+        const button = document.createElement('button');
+        button.textContent = name;
+        button.classList.add('teleport-location-button');
+        button.addEventListener('click', () => {
+            const location = teleportLocations[name];
+            teleportPlayer(location.x, location.y, location.z);
+            teleportPanel.style.display = 'none';
+        });
+        teleportPanel.appendChild(button);
+    }
+
+    // Own Overlook button
+    const overlookBtn = document.createElement('button');
+    overlookBtn.textContent = 'Own Overlook';
+    overlookBtn.classList.add('teleport-location-button');
+    overlookBtn.style.background = '#5a7a8a';
+    overlookBtn.addEventListener('click', () => {
+        teleportPanel.style.display = 'none';
+        createOwnOverlook();
+    });
+    teleportPanel.appendChild(overlookBtn);
+}
+
+function toggleTeleportPanel() {
+    const teleportPanel = document.getElementById('teleportPanel');
+    const teleportButton = document.getElementById('teleportButton');
+    const isHidden = getComputedStyle(teleportPanel).display === 'none';
+    if (isHidden) {
+        teleportPanel.style.display = 'flex';
+        // On mobile, position panel above the teleport button dynamically
+        if (teleportButton && window.matchMedia('(pointer: coarse)').matches) {
+            const btnRect = teleportButton.getBoundingClientRect();
+            const panelHeight = teleportPanel.offsetHeight || 200;
+            const topPos = Math.max(8, btnRect.top - panelHeight - 8);
+            teleportPanel.style.top = topPos + 'px';
+            teleportPanel.style.bottom = 'auto';
+            teleportPanel.style.right = (window.innerWidth - btnRect.right) + 'px';
+            teleportPanel.style.left = 'auto';
+        }
+    } else {
+        teleportPanel.style.display = 'none';
+    }
+}
+
+function teleportPlayer(x, y, z) {
+    if (!playerModel) return;
+    
+    const groundHeight = getTerrainHeight(x, z);
+    playerModel.position.set(x, groundHeight + 0.5 * player.avatarScale, z);
+    
+    controls.target.set(playerModel.position.x, playerModel.position.y + 1.5, playerModel.position.z);
+    controls.update();
+
+    updatePlayerOnServer();
+}
+
+async function createBillboards() {
+    console.log("DEBUG: Creating billboards...");
+    const billboardPositions = [
+        { x: 100, z: 100, rotationY: Math.PI / 4,  billboardId: 1, name: 'Billboard 1' },
+        { x: 130, z: 70,  rotationY: -Math.PI / 4, billboardId: 2, name: 'Billboard 2' }
+    ];
+
+    billboardPositions.forEach((data) => {
+        const billboard = createBillboard(data.name, data.billboardId);
+        billboard.position.x = data.x;
+        billboard.position.z = data.z;
+        billboard.rotation.y = data.rotationY;
+
+        const y = getTerrainHeight(data.x, data.z);
+        billboard.position.y = y + 13;
+
+        scene.add(billboard);
+        billboardObjects.push(billboard);
+    });
+    
+    loadExistingBillboards();
+}
+
+function createBillboard(name, id) {
+    const defaultTexture = textureLoader.load('../1worldthings/images/default_billboard.png');
+    const defaultMaterial = new THREE.MeshStandardMaterial({ map: defaultTexture });
+    const defaultGeometry = new THREE.PlaneGeometry(20, 16);
+
+    const frameGeometry = new THREE.BoxGeometry(22, 18, 1);
+    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+
+    // Front face
+    const frontMesh = new THREE.Mesh(defaultGeometry, defaultMaterial);
+    frontMesh.position.z = 0.6;
+
+    // Back face — same material, rotated 180° so it faces the other direction
+    const backMesh = new THREE.Mesh(defaultGeometry, defaultMaterial);
+    backMesh.position.z = -0.6;
+    backMesh.rotation.y = Math.PI;
+
+    const group = new THREE.Group();
+    group.add(frame);
+    group.add(frontMesh);
+    group.add(backMesh);
+    group.name = `billboard-${id}`;
+    group.userData = { isBillboard: true, billboardId: id, billboardName: name, imageUrl: '../1worldthings/images/default_billboard.png' };
+    return group;
+}
+
+function onDocumentClick(event) {
+    if (!camera) return; // FIX: Ensure camera is initialized before using it.
+    
+    const mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    // Check billboard clicks
+    const intersects = raycaster.intersectObjects(billboardObjects, true);
+
+    if (intersects.length > 0) {
+        event.preventDefault(); // Prevent OrbitControls from handling the click
+        const intersectedObject = intersects[0].object;
+        let billboardGroup = intersectedObject.parent;
+
+        while (billboardGroup && !billboardGroup.userData.isBillboard) {
+            billboardGroup = billboardGroup.parent;
+        }
+
+        if (billboardGroup && billboardGroup.userData.isBillboard) {
+            console.log(`Billboard clicked! ID: ${billboardGroup.userData.billboardId}`);
+            activeBillboard = billboardGroup;
+            document.getElementById('billboardTitle').textContent = `Upload to ${billboardGroup.userData.billboardName}`;
+            document.getElementById('billboardUploadPanel').style.display = 'block';
+        }
+        return;
+    }
+
+    // Check overlook clicks
+    const overlookMeshes = allOverlooks.map(o => o.mesh);
+    const overlookIntersects = raycaster.intersectObjects(overlookMeshes, true);
+    if (overlookIntersects.length > 0) {
+        event.preventDefault();
+        let obj = overlookIntersects[0].object;
+        // Walk up to find the group with overlook userData
+        while (obj && !obj.userData.isOverlook) obj = obj.parent;
+        if (obj && obj.userData.isOverlook) {
+            const ownerId = obj.userData.playerId;
+            if (ownerId === player.id) {
+                openOverlookDeletePanel(obj);
+            }
+            // Other players' overlooks: no menu
+        }
+        return;
+    }
+    const platIntersects = raycaster.intersectObjects(platformClickTargets, true);
+    if (platIntersects.length > 0) {
+        event.preventDefault();
+        let obj = platIntersects[0].object;
+        while (obj && !obj.userData.isPlatform) obj = obj.parent;
+        if (obj && obj.userData.isPlatform) {
+            openPlatformPanel(obj.userData.platformId);
+        }
+    }
+}
+
+function uploadBillboardImage() {
+    const fileInput = document.getElementById('billboardImageInput');
+    const file = fileInput.files[0];
+
+    if (!file || !activeBillboard) {
+        alert("Please select an image file first.");
+        return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+        alert("File size exceeds the 2MB limit.");
+        return;
+    }
+
+    // Show loading message
+    showLoadingMessage();
+
+    const formData = new FormData();
+    formData.append('billboardId', activeBillboard.userData.billboardId);
+    formData.append('billboardImage', file);
+
+    fetch('upload_billboard.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            if (data.success) {
+                console.log('Image uploaded successfully:', data.message);
+                // Show success message briefly before closing
+                showSuccessMessage();
+                setTimeout(() => {
+                    hideLoadingMessage();
+                    closeBillboardPanel();
+                }, 1500);
+            } else {
+                hideLoadingMessage();
+                alert('Upload failed: ' + data.message);
+            }
+        } catch (e) {
+            console.error('Failed to parse JSON:', e);
+            console.error('Received text:', text);
+            hideLoadingMessage();
+            alert('An error occurred. Received an invalid response from the server.');
+        }
+    })
+    .catch(error => {
+        console.error('Error uploading image:', error);
+        hideLoadingMessage();
+        alert('An error occurred during upload.');
+    });
+}
+
+function showLoadingMessage() {
+    const loadingMsg = document.getElementById('loadingMessage');
+    const uploadPanel = document.getElementById('billboardUploadPanel');
+    if (loadingMsg && uploadPanel) {
+        uploadPanel.style.display = 'none'; // Hide upload panel
+        loadingMsg.style.display = 'block'; // Show loading message
+    }
+}
+
+function hideLoadingMessage() {
+    const loadingMsg = document.getElementById('loadingMessage');
+    if (loadingMsg) {
+        loadingMsg.style.display = 'none';
+    }
+}
+
+function showSuccessMessage() {
+    const loadingMsg = document.getElementById('loadingMessage');
+    if (loadingMsg) {
+        loadingMsg.innerHTML = `
+            <h3>Upload Successful!</h3>
+            <div style="color: #4CAF50; font-size: 24px; margin: 10px;">✓</div>
+            <p>Your image has been uploaded and will appear shortly.</p>
+        `;
+    }
+}
+
+function closeBillboardPanel() {
+    const uploadPanel = document.getElementById('billboardUploadPanel');
+    if (uploadPanel) {
+        uploadPanel.style.display = 'none';
+    }
+    const fileInput = document.getElementById('billboardImageInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    activeBillboard = null;
+}
+
+function updateBillboardTexture(id, file) {
+    const billboardsToUpdate = billboardObjects.filter(obj => obj.userData.billboardId === id);
+    if (!billboardsToUpdate || billboardsToUpdate.length === 0) return;
+
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+        const newTexture = textureLoader.load(e.target.result);
+        billboardsToUpdate.forEach(billboard => {
+            billboard.children
+                .filter(c => c.geometry && c.geometry.type === 'PlaneGeometry')
+                .forEach(mesh => { mesh.material.map = newTexture; mesh.material.needsUpdate = true; });
+        });
+    };
+    fileReader.readAsDataURL(file);
+}
+
+async function loadExistingBillboards() {
+    try {
+        const response = await fetch('get_billboards.php');
+        const billboards = await response.json();
+        
+        // Loop through the received billboard data
+        for (const id in billboards) {
+            const billboard = billboards[id];
+            
+            // Find ALL billboard objects in the scene with this ID
+            const billboardsToUpdate = billboardObjects.filter(obj => obj.userData.billboardId == id);
+            
+            if (billboardsToUpdate.length > 0 && billboard.url) {
+                // Check if the URL has changed for the first billboard in the group
+                if (billboardsToUpdate[0].userData.imageUrl !== billboard.url) {
+                    const texture = textureLoader.load(billboard.url);
+                    
+                    billboardsToUpdate.forEach(billboardObj => {
+                        billboardObj.children
+                            .filter(c => c.geometry && c.geometry.type === 'PlaneGeometry')
+                            .forEach(mesh => { mesh.material.map = texture; mesh.material.needsUpdate = true; });
+                        billboardObj.userData.imageUrl = billboard.url;
+                    });
+                    console.log(`Billboard pair ${id} updated with new image: ${billboard.url}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading existing billboards:', error);
+    }
+}
+
+async function loadWorldObjects() {
+    console.log("DEBUG: Loading custom world objects...");
+    const objectData = [
+    { 
+        filename: 'pond2.glb', 
+        position: { x: -140, y: null, z: 140 },
+        yOffset: 1,
+        rotationY: Math.PI, 
+        scale: 15
+    },
+    { 
+        filename: 'pavilion.glb', 
+        position: { x: 140, y: null, z: -140 },
+        yOffset: 0,
+        rotationY: -0.5, 
+        scale: 10
+    }
+];
+
+    for (const objData of objectData) {
+        try {
+            const bust = objData.filename === 'gazebo.glb' ? `?v=${Date.now()}` : '';
+            const gltf = await gltfLoader.loadAsync(`../1worldthings/objects/${objData.filename}${bust}`);
+            const object = gltf.scene;
+
+            let y = 0;
+            if (objData.position.y !== undefined && objData.position.y !== null) {
+                y = objData.position.y;
+            } else {
+                y = getTerrainHeight(objData.position.x, objData.position.z);
+            }
+            y += (objData.yOffset || 0);
+            
+            object.position.set(objData.position.x, y, objData.position.z);
+            
+            if (objData.rotationY !== undefined) {
+                object.rotation.y = objData.rotationY;
+            }
+            if (objData.scale !== undefined) {
+                object.scale.set(objData.scale, objData.scale, objData.scale);
+            }
+            
+            scene.add(object);
+            worldObjects.push(object);
+            console.log(`DEBUG: Object loaded successfully: ${objData.filename}`);
+        } catch (error) {
+            console.error(`ERROR: Failed to load object from ../1worldthings/objects/${objData.filename}.`, error);
+        }
+    }
+}
+
+function toggleResetPanel() {
+    const resetPanel = document.getElementById('resetPanel');
+    if (resetPanel) {
+        resetPanel.style.display = resetPanel.style.display === 'none' ? 'flex' : 'none';
+    }
+}
+
+function closeResetPanel() {
+    const resetPanel = document.getElementById('resetPanel');
+    if (resetPanel) {
+        resetPanel.style.display = 'none';
+    }
+}
+
+async function resetWorld() {
+    console.log("DEBUG: Reset World 'Yes' button clicked. Attempting to run reset.php...");
+    try {
+        const response = await fetch('reset.php', { method: 'GET' });
+        if (response.ok) {
+            console.log("DEBUG: reset.php ran successfully.");
+        } else {
+            console.error("ERROR: Failed to run reset.php. Server responded with status:", response.status);
+        }
+    } catch (error) {
+        console.error("ERROR: Network error or problem running reset.php:", error);
+    }
+    closeResetPanel();
+}
+
+// ═══════════════════════════════════════════════════════
+// OWN OVERLOOK SYSTEM
+// ═══════════════════════════════════════════════════════
+
+function buildOverlookMesh(x, z, topY) {
+    const terrainY = getTerrainHeight(x, z);
+    const stemHeight = topY - terrainY - 0.75; // disc is 1.5 tall, half = 0.75
+
+    const group = new THREE.Group();
+    group.position.set(x, terrainY, z); // group origin sits at terrain level
+    group.userData = { isOverlook: true, playerId: null }; // playerId set by caller
+
+    const grey = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.95, metalness: 0.0 });
+
+    // Stem — local Y: bottom at 0, centre at stemHeight/2
+    const stemGeo = new THREE.CylinderGeometry(OVERLOOK_STEM_RADIUS, OVERLOOK_STEM_RADIUS, stemHeight, 16);
+    const stem = new THREE.Mesh(stemGeo, grey);
+    stem.position.y = stemHeight / 2;
+    stem.castShadow = true;
+    stem.receiveShadow = true;
+    group.add(stem);
+
+    // Disc — local Y: centre at (topY - terrainY - 0.75)
+    const discGeo = new THREE.CylinderGeometry(OVERLOOK_DISC_RADIUS, OVERLOOK_DISC_RADIUS, 1.5, 40);
+    const disc = new THREE.Mesh(discGeo, grey);
+    disc.position.y = topY - terrainY - 0.75;
+    disc.castShadow = true;
+    disc.receiveShadow = true;
+    group.add(disc);
+
+    return group;
+}
+
+async function createOwnOverlook() {
+    if (!playerModel) return;
+    if (myOverlook) return;
+
+    const currentTerrainY = getTerrainHeight(playerModel.position.x, playerModel.position.z);
+    if (playerModel.position.y > currentTerrainY + 5) return;
+
+    const x = playerModel.position.x;
+    const z = playerModel.position.z;
+    const topY = getTerrainHeight(x, z) + OVERLOOK_HEIGHT_ABOVE_TERRAIN;
+
+    // Build mesh
+    const mesh = buildOverlookMesh(x, z, topY);
+    mesh.userData.playerId = player.id;
+    scene.add(mesh);
+
+    const entry = { mesh: mesh, x: x, z: z, topY: topY, playerId: player.id };
+    myOverlook = entry;
+    allOverlooks.push(entry);
+
+    // Teleport avatar to top immediately (before server save)
+    overlookSnapOverride = true;
+    playerModel.position.set(x, topY + 0.5 * player.avatarScale, z);
+    controls.target.set(x, topY + 1.5, z);
+    controls.update();
+
+    // Save to server
+    try {
+        await fetch('overlook.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ action: 'save', playerId: player.id, x: x, z: z, topY: topY }).toString()
+        });
+    } catch(e) { console.error('overlook save error:', e); }
+
+    updatePlayerOnServer();
+}
+
+function openOverlookDeletePanel() {
+    document.getElementById('overlookDeletePanel').style.display = 'block';
+}
+
+function closeOverlookDeletePanel() {
+    document.getElementById('overlookDeletePanel').style.display = 'none';
+}
+
+async function deleteOwnOverlook() {
+    closeOverlookDeletePanel();
+    if (!myOverlook) return;
+
+    // Remove mesh from scene
+    scene.remove(myOverlook.mesh);
+    allOverlooks = allOverlooks.filter(o => o.playerId !== player.id);
+    myOverlook = null;
+
+    // Drop avatar to terrain
+    if (playerModel) {
+        const groundY = getTerrainHeight(playerModel.position.x, playerModel.position.z);
+        playerModel.position.y = groundY + 0.5 * player.avatarScale;
+        controls.target.set(playerModel.position.x, playerModel.position.y + 1.5, playerModel.position.z);
+        controls.update();
+        updatePlayerOnServer();
+    }
+
+    // Delete from server
+    try {
+        await fetch('overlook.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ action: 'delete', playerId: player.id }).toString()
+        });
+    } catch(e) { console.error('overlook delete error:', e); }
+}
+
+async function pollOverlooks() {
+    try {
+        const res = await fetch('overlook.php?action=get');
+        const data = await res.json();
+
+        // Build set of currently active player IDs (own + others visible in scene)
+        const activePlayers = {};
+        activePlayers[player.id] = true;
+        for (var pid in otherPlayers) {
+            activePlayers[pid] = true;
+        }
+
+        // Clean up server entries for players who have left
+        for (var spid in data) {
+            if (!activePlayers[spid] && spid !== player.id) {
+                // Player gone — delete from server
+                try {
+                    fetch('overlook.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ action: 'delete', playerId: spid }).toString()
+                    });
+                } catch(e) {}
+                delete data[spid];
+            }
+        }
+
+        // Remove overlooks from scene that are no longer on server (except own)
+        allOverlooks = allOverlooks.filter(function(o) {
+            if (o.playerId === player.id) return true;
+            if (data[o.playerId]) return true;
+            scene.remove(o.mesh);
+            return false;
+        });
+
+        // Add new overlooks from server (skip own)
+        for (var pid in data) {
+            if (pid === player.id) continue;
+            var already = false;
+            for (var i = 0; i < allOverlooks.length; i++) {
+                if (allOverlooks[i].playerId === pid) { already = true; break; }
+            }
+            if (!already) {
+                var d = data[pid];
+                var mesh = buildOverlookMesh(d.x, d.z, d.topY);
+                mesh.userData.playerId = pid;
+                scene.add(mesh);
+                allOverlooks.push({ mesh: mesh, x: d.x, z: d.z, topY: d.topY, playerId: pid });
+            }
+        }
+    } catch(e) { console.error('pollOverlooks error:', e); }
+}
+
+// Wire up overlook delete panel buttons (called once after DOM ready)
+function initOverlookUI() {
+    document.getElementById('overlookDeleteYes').addEventListener('click', deleteOwnOverlook);
+    document.getElementById('overlookDeleteNo').addEventListener('click', closeOverlookDeletePanel);
+}
+
+// ═══════════════════════════════════════════════════════
+// PLATFORM SYSTEM
+// ═══════════════════════════════════════════════════════
+
+async function initPlatforms() {
+    // Build a procedural stone texture using a canvas
+    const stoneCanvas = document.createElement('canvas');
+    stoneCanvas.width  = 512;
+    stoneCanvas.height = 512;
+    const ctx = stoneCanvas.getContext('2d');
+
+    // Dark base
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Fluid sediment layers — horizontal wavy bands
+    var rng = function(min, max) { return min + Math.random() * (max - min); };
+    for (var layer = 0; layer < 40; layer++) {
+        var baseY = rng(0, 512);
+        var grey  = Math.floor(rng(55, 110));
+        var alpha = rng(0.25, 0.6);
+        ctx.beginPath();
+        ctx.moveTo(0, baseY);
+        // Build a wavy organic path across the canvas
+        var cx = 0;
+        while (cx < 512) {
+            var step = rng(30, 80);
+            var waveY = baseY + rng(-18, 18);
+            var cpX  = cx + step * 0.5;
+            var cpY  = baseY + rng(-28, 28);
+            ctx.quadraticCurveTo(cpX, cpY, cx + step, waveY);
+            baseY = waveY;
+            cx += step;
+        }
+        // Close the band with some thickness
+        var thickness = rng(6, 28);
+        cx = 512;
+        while (cx > 0) {
+            var step2 = rng(30, 80);
+            ctx.quadraticCurveTo(cx - step2 * 0.5, baseY + rng(-10, 10), cx - step2, baseY + thickness);
+            cx -= step2;
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(' + grey + ',' + grey + ',' + (grey - 3) + ',' + alpha + ')';
+        ctx.fill();
+    }
+
+    // Subtle dark crack lines
+    for (var c = 0; c < 18; c++) {
+        ctx.beginPath();
+        var sx = rng(0, 512), sy = rng(0, 512);
+        ctx.moveTo(sx, sy);
+        for (var seg = 0; seg < 5; seg++) {
+            sx += rng(-30, 30);
+            sy += rng(-30, 30);
+            ctx.lineTo(sx, sy);
+        }
+        ctx.strokeStyle = 'rgba(20,20,20,' + rng(0.2, 0.5) + ')';
+        ctx.lineWidth = rng(0.5, 1.5);
+        ctx.stroke();
+    }
+
+    // Noise pass
+    var imgData = ctx.getImageData(0, 0, 512, 512);
+    for (var px = 0; px < imgData.data.length; px += 4) {
+        var n = (Math.random() - 0.5) * 20;
+        imgData.data[px]     = Math.min(255, Math.max(0, imgData.data[px]     + n));
+        imgData.data[px + 1] = Math.min(255, Math.max(0, imgData.data[px + 1] + n));
+        imgData.data[px + 2] = Math.min(255, Math.max(0, imgData.data[px + 2] + n));
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    const stoneTex = new THREE.CanvasTexture(stoneCanvas);
+    stoneTex.wrapS = THREE.RepeatWrapping;
+    stoneTex.wrapT = THREE.RepeatWrapping;
+    stoneTex.repeat.set(4, 4);
+
+    const discMat = new THREE.MeshStandardMaterial({
+        map:       stoneTex,
+        roughness: 0.95,
+        metalness: 0.0,
+        color:     0x888888
+    });
+
+    for (const p of PLATFORMS) {
+        // Build the platform disc (radius 26.25)
+        const discGeo = new THREE.CylinderGeometry(26.25, 26.25, 1.5, 48);
+        const disc    = new THREE.Mesh(discGeo, discMat);
+        disc.receiveShadow = true;
+        disc.castShadow    = true;
+
+        const group = new THREE.Group();
+        group.name = `platform-${p.id}`;
+        group.userData = { isPlatform: true, platformId: p.id };
+        group.add(disc);
+
+        const groundY = getTerrainHeight(p.x, p.z);
+        group.position.set(p.x, groundY, p.z);
+
+        scene.add(group);
+        platformMeshes[p.id] = group;
+        platformGlbNodes[p.id] = null;
+        platformSlots[p.id]    = { occupied: false, scale: 1.0, rotation: 0 };
+    }
+
+    // Load initial state from server
+    await pollPlatformObjects();
+}
+
+async function pollPlatformObjects() {
+    try {
+        const response = await fetch('get_objects.php');
+        const data     = await response.json();
+
+        for (const idStr in data) {
+            const id   = parseInt(idStr);
+            const slot = data[id];
+            const prev = platformSlots[id];
+
+            const occupancyChanged = prev.occupied !== slot.occupied;
+            const scaleChanged     = prev.scale    !== slot.scale;
+            const rotationChanged  = prev.rotation !== slot.rotation;
+
+            platformSlots[id] = slot;
+
+            if (!slot.occupied) {
+                // Remove GLB if present
+                if (platformGlbNodes[id]) {
+                    platformMeshes[id].remove(platformGlbNodes[id]);
+                    platformGlbNodes[id] = null;
+                }
+                continue;
+            }
+
+            if (occupancyChanged) {
+                // (Re)load the GLB
+                await loadPlatformGlb(id, slot);
+            } else if (scaleChanged || rotationChanged) {
+                applyPlatformTransform(id, slot);
+            }
+        }
+    } catch (err) {
+        console.error('pollPlatformObjects error:', err);
+    }
+}
+
+async function loadPlatformGlb(id, slot) {
+    if (platformGlbNodes[id]) {
+        platformMeshes[id].remove(platformGlbNodes[id]);
+        platformGlbNodes[id] = null;
+    }
+
+    const url = `../1worldthings/objects/platform${id}.glb?v=${Date.now()}`;
+    try {
+        const gltf  = await gltfLoader.loadAsync(url);
+        const model = gltf.scene;
+
+        // Reset transforms so we measure raw geometry
+        model.position.set(0, 0, 0);
+        model.rotation.set(0, 0, 0);
+        model.scale.set(1, 1, 1);
+        model.updateMatrixWorld(true);
+
+        // NaN-safe bounds: iterate vertices directly
+        let minX = Infinity, minY = Infinity, minZ = Infinity;
+        let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+        model.traverse(function(child) {
+            if (!child.isMesh) return;
+            var pos = child.geometry.attributes.position;
+            if (!pos) return;
+            var mat = child.matrixWorld;
+            var v = new THREE.Vector3();
+            for (var i = 0; i < pos.count; i++) {
+                v.fromBufferAttribute(pos, i).applyMatrix4(mat);
+                if (isNaN(v.x) || isNaN(v.y) || isNaN(v.z)) continue;
+                if (v.x < minX) minX = v.x;
+                if (v.y < minY) minY = v.y;
+                if (v.z < minZ) minZ = v.z;
+                if (v.x > maxX) maxX = v.x;
+                if (v.y > maxY) maxY = v.y;
+                if (v.z > maxZ) maxZ = v.z;
+            }
+        });
+
+        if (!isFinite(minY)) minY = 0;
+        if (!isFinite(maxY)) maxY = 10;
+        if (!isFinite(maxX)) maxX = 5;
+        if (!isFinite(minX)) minX = -5;
+        if (!isFinite(maxZ)) maxZ = 5;
+        if (!isFinite(minZ)) minZ = -5;
+
+        var sizeX = maxX - minX;
+        var sizeY = maxY - minY;
+        var sizeZ = maxZ - minZ;
+        var maxDim = Math.max(sizeX, sizeY, sizeZ);
+        if (maxDim === 0) maxDim = 1;
+
+        const normalizedScale = 10 / maxDim;
+        const finalScale = normalizedScale * slot.scale;
+
+        model.scale.setScalar(finalScale);
+        model.rotation.y = THREE.MathUtils.degToRad(slot.rotation);
+        // Place bottom of model on top of disc (disc top = +0.75 in group local space)
+        model.position.y = 0.75 - minY * finalScale;
+
+        model.userData = { normalizedScale: normalizedScale, rawMinY: minY };
+        model.traverse(function(c) { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+
+        platformMeshes[id].add(model);
+        platformGlbNodes[id] = model;
+
+        console.log('Platform ' + id + ' loaded. minY=' + minY.toFixed(3) + ' maxDim=' + maxDim.toFixed(3) + ' finalScale=' + finalScale.toFixed(3) + ' posY=' + model.position.y.toFixed(3));
+    } catch (err) {
+        console.error('Failed to load platform ' + id + ' GLB:', err);
+        alert('Failed to load GLB on platform ' + id + ': ' + err.message);
+    }
+}
+
+function applyPlatformTransform(id, slot) {
+    const model = platformGlbNodes[id];
+    if (!model) return;
+    const ns     = model.userData.normalizedScale || 1;
+    const rawMinY = model.userData.rawMinY || 0;
+    const finalScale = ns * slot.scale;
+    model.scale.setScalar(finalScale);
+    model.rotation.y = THREE.MathUtils.degToRad(slot.rotation);
+    model.position.y = 0.75 - rawMinY * finalScale;
+}
+
+// ── Panel UI ──
+
+function openPlatformPanel(id) {
+    activePlatform = id;
+    const slot = platformSlots[id];
+
+    const panel      = document.getElementById(`platformPanel${id}`);
+    const statusDiv  = document.getElementById(`platformStatus${id}`);
+    const scaleRow   = document.getElementById(`platformScaleRow${id}`);
+    const rotRow     = document.getElementById(`platformRotRow${id}`);
+    const deleteBtn  = document.getElementById(`platformDeleteBtn${id}`);
+    const slider     = document.getElementById(`platformScale${id}`);
+    const valSpan    = document.getElementById(`platformScaleVal${id}`);
+
+    if (slot.occupied) {
+        statusDiv.textContent = 'Object uploaded.';
+        scaleRow.style.display  = 'flex';
+        rotRow.style.display    = 'block';
+        deleteBtn.style.display = 'inline-block';
+        slider.value    = slot.scale;
+        valSpan.textContent = parseFloat(slot.scale).toFixed(2);
+    } else {
+        statusDiv.textContent = 'No object uploaded.';
+        scaleRow.style.display  = 'none';
+        rotRow.style.display    = 'none';
+        deleteBtn.style.display = 'none';
+    }
+
+    panel.style.display = 'block';
+}
+
+function closePlatformPanel(id) {
+    document.getElementById(`platformPanel${id}`).style.display = 'none';
+    document.getElementById(`platformFile${id}`).value = '';
+    activePlatform = null;
+}
+
+async function uploadPlatformObject(id) {
+    const fileInput = document.getElementById(`platformFile${id}`);
+    const file      = fileInput.files[0];
+    if (!file) { alert('Please select a .glb file first.'); return; }
+    if (file.size > 8.2 * 1024 * 1024) { alert('File exceeds 8.2 MB limit.'); return; }
+
+    const formData = new FormData();
+    formData.append('platform', String(id));
+    formData.append('glbFile', file);
+
+    try {
+        const res  = await fetch('upload_object.php', { method: 'POST', body: formData });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch(e) { alert('Server error: ' + text); return; }
+        if (data.success) {
+            platformSlots[id] = { occupied: true, scale: 1.0, rotation: 0 };
+            await loadPlatformGlb(id, platformSlots[id]);
+            // Reopen panel to show scale/rotate/delete controls
+            openPlatformPanel(id);
+        } else {
+            alert('Upload failed: ' + data.message);
+        }
+    } catch (err) {
+        alert('Upload error: ' + err.message);
+    }
+}
+
+async function savePlatformScale(id, scale) {
+    try {
+        await fetch('update_object.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platform: id, scale })
+        });
+        platformSlots[id].scale = scale;
+        applyPlatformTransform(id, platformSlots[id]);
+    } catch (err) {
+        console.error('savePlatformScale error:', err);
+    }
+}
+
+async function rotatePlatformObject(id, deltaDeg) {
+    const current = platformSlots[id].rotation || 0;
+    const next    = ((current + deltaDeg) % 360 + 360) % 360;
+    try {
+        await fetch('update_object.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platform: id, rotation: next })
+        });
+        platformSlots[id].rotation = next;
+        applyPlatformTransform(id, platformSlots[id]);
+    } catch (err) {
+        console.error('rotatePlatformObject error:', err);
+    }
+}
+
+async function deletePlatformObject(id) {
+    if (!confirm('Delete the object on this platform?')) return;
+    try {
+        const res  = await fetch('delete_object.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platform: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            platformSlots[id] = { occupied: false, scale: 1.0, rotation: 0 };
+            if (platformGlbNodes[id]) {
+                platformMeshes[id].remove(platformGlbNodes[id]);
+                platformGlbNodes[id] = null;
+            }
+            closePlatformPanel(id);
+        } else {
+            alert('Delete failed: ' + data.message);
+        }
+    } catch (err) {
+        alert('Delete error: ' + err.message);
+    }
+}
+    </script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log("Checking for active players on page load...");
+        try {
+            const response = await fetch('get_players.php');
+            const data = await response.json();
+
+            if (data.player_count === 0) {
+                console.log("No players found. Resetting world...");
+                await fetch('reset.php');
+                console.log("World reset complete.");
+            } else {
+                console.log(`${data.player_count} players found. No reset needed.`);
+            }
+        } catch (error) {
+            console.error('Error checking for players or resetting world:', error);
+        }
+    });
+</script>
+</body>
+</html>

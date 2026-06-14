@@ -1,0 +1,11 @@
+{
+  "name": "Virtual World",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "forwardPorts": [80],
+  "portsAttributes": {
+    "80": {
+      "label": "Virtual World",
+      "onAutoForward": "silent"
+    }
+  }
+}
