@@ -191,6 +191,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $removed_count++;
                 error_log("Removed inactive player: " . $player_id . " (last seen " . $time_since_last_seen . " seconds ago - TIMEOUT!)");
+                // Clean up their overlook
+                $overlooks_file = 'data/overlooks.json';
+                if (file_exists($overlooks_file)) {
+                    $overlooks_data = file_get_contents($overlooks_file);
+                    if ($overlooks_data) {
+                        $overlooks = json_decode($overlooks_data, true);
+                        if ($overlooks && isset($overlooks[$player_id])) {
+                            unset($overlooks[$player_id]);
+                            file_put_contents($overlooks_file, json_encode($overlooks));
+                            error_log("Cleaned up overlook for timed-out player: " . $player_id);
+                        }
+                    }
+                }
             }
         } else {
             // Player has no lastSeen timestamp, remove them

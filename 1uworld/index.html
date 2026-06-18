@@ -855,7 +855,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-console.log("File loaded. Version: 2025-08-07 - v35 with temporary terrain areas");
+console.log("File loaded. Version: 2026-06-14 - v37 fix mobile detection and overlook sync");
 // Game variables
 let scene, camera, renderer, world;
 let player = { x: 0, z: 0, username: '', id: '', avatarUrl: '', avatarScale: 1 };
@@ -888,8 +888,7 @@ let lastTouchX = null;
 
 // Mobile detection
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.userAgent)) ||
-    window.matchMedia('(pointer: coarse)').matches;
+    (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.userAgent));
 
 // World size
 const WORLD_SIZE = 400;
@@ -2742,28 +2741,6 @@ async function pollOverlooks() {
     try {
         const res = await fetch('overlook.php?action=get');
         const data = await res.json();
-
-        // Build set of currently active player IDs (own + others visible in scene)
-        const activePlayers = {};
-        activePlayers[player.id] = true;
-        for (var pid in otherPlayers) {
-            activePlayers[pid] = true;
-        }
-
-        // Clean up server entries for players who have left
-        for (var spid in data) {
-            if (!activePlayers[spid] && spid !== player.id) {
-                // Player gone — delete from server
-                try {
-                    fetch('overlook.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ action: 'delete', playerId: spid }).toString()
-                    });
-                } catch(e) {}
-                delete data[spid];
-            }
-        }
 
         // Remove overlooks from scene that are no longer on server (except own)
         allOverlooks = allOverlooks.filter(function(o) {
