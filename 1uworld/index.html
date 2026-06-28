@@ -6,6 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
+    <script>
+    (async function() {
+        try {
+            const res = await fetch("https://raw.githubusercontent.com/satorizak/vworld/main/world-url.json?nocache=" + Date.now());
+            const data = await res.json();
+            if (data.url) {
+                const currentBase = window.location.origin;
+                const correctBase = data.url.replace(/\/$/, "");
+                if (currentBase !== correctBase) {
+                    window.location.href = correctBase + "/1uworld/";
+                }
+            }
+        } catch(e) {}
+    })();
+    </script>
     <meta http-equiv="Expires" content="0">
     <title>3D Virtual World</title>
     <style>
