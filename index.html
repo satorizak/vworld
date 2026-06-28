@@ -23,7 +23,7 @@
 async function redirect() {
   const status = document.getElementById('status');
   try {
-    const res = await fetch('https://raw.githubusercontent.com/zaktree6/vworld/main/world-url.json?nocache=' + Date.now());
+    const res = await fetch('https://raw.githubusercontent.com/satorizak/vworld/main/world-url.json?nocache=' + Date.now());
     if (!res.ok) throw new Error('Could not fetch world URL');
     const data = await res.json();
     if (data.url) {
