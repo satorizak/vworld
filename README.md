@@ -4,7 +4,7 @@ A multiplayer 3D virtual world built with Three.js and PHP.
 
 ## Play the World
 
-Visit: **https://zaktree6.github.io/vworld/**
+Visit: **https://satorizak.github.io/vworld/**
 
 This link always works and automatically redirects to the current server.
 
