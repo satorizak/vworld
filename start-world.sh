@@ -6,9 +6,10 @@ if ! command -v apache2 > /dev/null; then
   sudo apt-get install -y -q apache2 php libapache2-mod-php
 fi
 # Link folders
-sudo ln -sf /workspaces/vworld/1uworld /var/www/html/1uworld
-sudo ln -sf /workspaces/vworld/1worldthings /var/www/html/1worldthings
+sudo ln -sfn /workspaces/vworld/1uworld /var/www/html/1uworld
+sudo ln -sfn /workspaces/vworld/1worldthings /var/www/html/1worldthings
 # Set permissions
+mkdir -p /workspaces/vworld/1uworld/data /workspaces/vworld/1uworld/billboards
 sudo chmod -R 777 /workspaces/vworld/1uworld/data
 sudo chmod -R 777 /workspaces/vworld/1uworld/billboards
 # Start Apache

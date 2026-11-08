@@ -1,11 +1,1 @@
-{
-  "name": "Virtual World",
-  "postCreateCommand": "bash .devcontainer/setup.sh",
-  "forwardPorts": [80],
-  "portsAttributes": {
-    "80": {
-      "label": "Virtual World",
-      "onAutoForward": "silent"
-    }
-  }
-}
+{"name":"Virtual World","postCreateCommand":"bash .devcontainer/setup.sh","postStartCommand":"cd /workspaces/vworld && chmod +x start-world.sh && setsid nohup bash start-world.sh > /tmp/start-world.log 2>&1 &","forwardPorts":[80],"portsAttributes":{"80":{"label":"Virtual World","onAutoForward":"silent"}}}
